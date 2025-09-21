@@ -244,7 +244,7 @@ const SecondHomePage = () => {
           <p className="text-sm text-gray-600 mb-6">
             This 2-minute assessment will help you understand your sexual health
             better. Your responses are 100% private.
-          </p>
+          </p>   
           <button
             onClick={() => setStart(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-5 rounded-md transition duration-200"

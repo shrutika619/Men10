@@ -1,11 +1,12 @@
-import Image from "next/image";   
 import React from "react";
 import HomePage from "@/components/HomePage/HomePage";
 
-export default function Home() {
+const Page = () => {
   return (
-    <div className="mx-auto container ">
+    <div>
       <HomePage />
     </div>
   );
-}
+};
+
+export default Page;
