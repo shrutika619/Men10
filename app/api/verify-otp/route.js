@@ -22,6 +22,7 @@ export async function POST(request) {
       delete otpData[phone];
       return NextResponse.json({ error: 'OTP has expired. Please request a new OTP.' }, { status: 400 });
     }
+    
 
     // Check if correct
     if (stored.otp === otp) {
