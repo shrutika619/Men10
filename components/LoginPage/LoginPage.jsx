@@ -1,95 +1,131 @@
 "use client";
 import { useState } from "react";
+import axios from "axios";
+import {Constants} from "@/app/utils/constants";
 
-export default function LoginPage() {
+const OTPLogin = () => {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [step, setStep] = useState("enterPhone");
+  const [step, setStep] = useState("send"); // "send" → "verify"
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Send OTP function
+  // Validate phone number
+  const isValidPhone = (num) => /^[6-9]\d{9}$/.test(num);
+
+  // Send OTP API call
   const sendOtp = async () => {
+    if (!isValidPhone(phone)) {
+      setMessage("Enter a valid 10-digit mobile number");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
     try {
-      const res = await fetch("/api/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+      const res = await axios.post(Constants.urlEndPoints.SEND_OTP, {
+        mobileNo: phone,
       });
-      const data = await res.json();
-
-      if (res.ok) {
-        setStep("enterOtp");
-        setMessage("OTP sent successfully!");
-      } else {
-        setMessage(data.error || "Failed to send OTP");
-      }
+      setMessage(res.data.message || "OTP sent successfully");
+      setStep("verify");
     } catch (err) {
-      setMessage("Server error while sending OTP");
+      setMessage(err.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Verify OTP function
+  // Verify OTP API call
   const verifyOtp = async () => {
+    if (otp.length !== 6) {
+      setMessage("Enter a 6-digit OTP");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
     try {
-      const res = await fetch("/api/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp }),
+      const res = await axios.post(Constants.urlEndPoints.VERIFY_OTP, {
+        mobileNo: phone,
+        otp,
       });
 
-      const data = await res.json().catch(() => ({}));
+      console.log(res.data);
+      const { accessToken, refreshToken } = res.data.data;
 
-      if (res.ok) {
-        setMessage("✅ Login successful!");
-      } else {
-        setMessage(data.error || "❌ Invalid OTP");
-      }
+      // Send tokens to Next.js API route to set HttpOnly cookies
+      await fetch("/api/set-tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, refreshToken }),
+      });
+
+      setMessage(res.data.message || "OTP verified successfully");
+
+      // TODO : Redirect user here
+
     } catch (err) {
-      setMessage("Server error while verifying OTP");
+      console.error(err);
+      setMessage(err.response?.data?.message || "Invalid or expired OTP");
+    } finally {
+      setLoading(false);
     }
   };
+
 
   return (
-    <div className="flex flex-col items-center justify-center h-[80vh] space-y-4">
-      <h1 className="text-2xl font-bold">Login with OTP</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+      <div className="bg-white shadow-lg rounded-lg p-6 w-80">
+        <h1 className="text-xl font-bold mb-4">Login with OTP</h1>
 
-      {step === "enterPhone" && (
-        <>
-          <input
-            type="text"
-            placeholder="Enter phone number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="border p-2 rounded"
-          />
-          <button
-            onClick={sendOtp}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Send OTP
-          </button>
-        </>
-      )}
+        {step === "send" && (
+          <>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter Mobile Number"
+              className="border p-2 w-full mb-3 rounded"
+            />
+            <button
+              onClick={sendOtp}
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 w-full rounded"
+            >
+              {loading ? "Sending..." : "Send OTP"}
+            </button>
+          </>
+        )}
 
-      {step === "enterOtp" && (
-        <>
-          <input
-            type="text"
-            placeholder="Enter OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            className="border p-2 rounded"
-          />
-          <button
-            onClick={verifyOtp}
-            className="bg-green-500 text-white px-4 py-2 rounded"
-          >
-            Verify OTP
-          </button>
-        </>
-      )}
+        {step === "verify" && (
+          <>
+            <input
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="Enter OTP"
+              className="border p-2 w-full mb-3 rounded"
+            />
+            <button
+              onClick={verifyOtp}
+              disabled={loading}
+              className="bg-green-600 text-white px-4 py-2 w-full rounded"
+            >
+              {loading ? "Verifying..." : "Verify OTP"}
+            </button>
+            <p
+              className="mt-2 text-blue-500 cursor-pointer text-sm"
+              onClick={() => setStep("send")}
+            >
+              Resend OTP
+            </p>
+          </>
+        )}
 
-      {message && <p className="text-sm text-gray-700">{message}</p>}
+        {message && <p className="mt-3 text-center text-sm">{message}</p>}
+      </div>
     </div>
   );
-}
+};
+
+export default OTPLogin;
