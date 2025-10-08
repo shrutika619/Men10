@@ -1,153 +1,80 @@
 "use client";
 import React from "react";
 
+// Import components directly (not dynamically)
+// Try multiple possible file locations
+let ErectileDysfunctionPage, LowSpermCountPage, PrematureEjaculationPage;
+
+try {
+  // Try importing from index file first
+  ErectileDysfunctionPage = require("@/components/ConditionsWeTreatPage/ErectileDysfunctionPage/index").default;
+} catch (e) {
+  try {
+    // Try importing from named file
+    ErectileDysfunctionPage = require("@/components/ConditionsWeTreatPage/ErectileDysfunctionPage/ErectileDysfunctionPage").default;
+  } catch (e2) {
+    console.error("Could not load ErectileDysfunctionPage");
+  }
+}
+
+try {
+  LowSpermCountPage = require("@/components/ConditionsWeTreatPage/LowSpermCountPage/index").default;
+} catch (e) {
+  try {
+    LowSpermCountPage = require("@/components/ConditionsWeTreatPage/LowSpermCountPage/LowSpermCountPage").default;
+  } catch (e2) {
+    console.error("Could not load LowSpermCountPage");
+  }
+}
+
+try {
+  PrematureEjaculationPage = require("@/components/ConditionsWeTreatPage/PrematureEjaculationPage/index").default;
+} catch (e) {
+  try {
+    PrematureEjaculationPage = require("@/components/ConditionsWeTreatPage/PrematureEjaculationPage/PrematureEjaculationPage").default;
+  } catch (e2) {
+    console.error("Could not load PrematureEjaculationPage");
+  }
+}
+
+// Map slugs to their respective components
+const componentMap = {
+  "erectile-dysfunction": ErectileDysfunctionPage,
+  "low-sperm-count": LowSpermCountPage,
+  "premature-ejaculation": PrematureEjaculationPage,
+};
+
 const ConditionPage = ({ params }) => {
   const { slug } = React.use(params);
-  const [Component, setComponent] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState(null);
+  const Component = componentMap[slug];
 
-  React.useEffect(() => {
-    const loadComponent = async () => {
-      try {
-        setLoading(true);
-        let component;
-
-        // Map slugs to their folder and component names
-        const componentMap = {
-          "premature-ejaculation": {
-            folder: "PrematureEjaculationPage",
-            file: "PrematureEjaculationPage"
-          },
-          "low-sperm-count": {
-            folder: "LowSpermCountPage", 
-            file: "LowSpermCountPage"
-          },
-          "erectile-dysfunction": {
-            folder: "ErectileDysfunctionPage",
-            file: "ErectileDysfunctionPage"
-          }
-        };
-
-        const componentInfo = componentMap[slug];
-        
-        if (componentInfo) {
-          // Use absolute paths from the project root
-          const possiblePaths = [
-            `@/components/ConditionsWeTreatPage/${componentInfo.folder}/${componentInfo.file}`,
-            `@/components/ConditionsWeTreatPage/${componentInfo.folder}/index`,
-            `@/components/ConditionsWeTreatPage/${componentInfo.folder}`,
-          ];
-
-          console.log(`Attempting to load component for slug: ${slug}`);
-          console.log(`Looking for folder: ${componentInfo.folder}`);
-
-          // Try each path until one works
-          for (const path of possiblePaths) {
-            try {
-              console.log(`🔍 Trying: ${path}`);
-              const module = await import(path);
-              component = module.default || module;
-              console.log(`✅ Successfully loaded from: ${path}`);
-              break;
-            } catch (err) {
-              console.log(`❌ Failed ${path}:`, err.message);
-              
-              // If @/ alias doesn't work, try direct relative paths
-              if (path.startsWith('@/')) {
-                const relativePath = path.replace('@/', '../../../');
-                try {
-                  console.log(`🔍 Trying relative: ${relativePath}`);
-                  const relativeModule = await import(relativePath);
-                  component = relativeModule.default || relativeModule;
-                  console.log(`✅ Successfully loaded from relative: ${relativePath}`);
-                  break;
-                } catch (relativeErr) {
-                  console.log(`❌ Failed relative ${relativePath}:`, relativeErr.message);
-                }
-              }
-            }
-          }
-
-          // If still no component found, try without file extension variations
-          if (!component) {
-            const fallbackPaths = [
-              `../../../components/ConditionsWeTreatPage/${componentInfo.folder}/${componentInfo.file}.jsx`,
-              `../../../components/ConditionsWeTreatPage/${componentInfo.folder}/${componentInfo.file}.js`,
-              `../../../components/ConditionsWeTreatPage/${componentInfo.folder}/index.jsx`,
-              `../../../components/ConditionsWeTreatPage/${componentInfo.folder}/index.js`,
-            ];
-
-            for (const path of fallbackPaths) {
-              try {
-                console.log(`🔍 Fallback trying: ${path}`);
-                const module = await import(path);
-                component = module.default || module;
-                console.log(`✅ Successfully loaded from fallback: ${path}`);
-                break;
-              } catch (err) {
-                console.log(`❌ Fallback failed ${path}:`, err.message);
-              }
-            }
-          }
-        }
-
-        if (component) {
-          setComponent(() => component);
-        } else {
-          console.error('All import attempts failed');
-          setError(`Could not load component for "${slug}". Available conditions: ${Object.keys(componentMap).join(", ")}`);
-        }
-      } catch (err) {
-        console.error('Error loading component:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (slug) {
-      loadComponent();
-    }
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading {slug} page...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Page Not Found</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">
-            Check the browser console for detailed error messages about which paths were tried.
-          </p>
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // If component doesn't exist, show 404
   if (!Component) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Component not found</h2>
-          <p className="text-gray-600">No component available for "{slug}"</p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-lg shadow-lg">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Page Not Found</h2>
+          <p className="text-gray-600 mb-4">
+            The condition page <span className="font-semibold">"{slug}"</span> could not be loaded.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Available pages: {Object.keys(componentMap).filter(key => componentMap[key]).join(", ") || "None loaded"}
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => window.location.href = '/'}
+              className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Go Home
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Reload Page
+            </button>
+          </div>
         </div>
       </div>
     );

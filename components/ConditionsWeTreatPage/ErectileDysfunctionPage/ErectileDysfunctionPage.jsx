@@ -8,7 +8,6 @@ import FifthErectileDysfunctionPage from "./FifthErectileDysfunctionPage";
 const ErectileDysfunctionPage = () => {
   return (
     <div>
-      <h1>Erectile Dysfunction</h1>
       <HerosectionErectileDysfunctionPage />
       <SecondErectileDysfunctionPage />
       <ThirdErectileDysfunctionPage />
