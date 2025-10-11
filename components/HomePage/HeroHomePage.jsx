@@ -1,7 +1,15 @@
+"use client";
 import React from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const HeroHomePage = () => {
+  const router = useRouter();
+
+  const handleRedirect = () => {
+    router.push("/free-consultation"); // 👈 redirects to your FreeConsultationPage
+  };
+
   return (
     <section className="bg-gradient-to-r from-pink-50 to-white px-18 py-18">
       <div className="container mx-auto flex flex-col-reverse md:flex-row items-center justify-between md:px-12">
@@ -16,7 +24,10 @@ const HeroHomePage = () => {
             Ayurvedic wisdom and modern science. Take our free, confidential 
             assessment to begin your journey.
           </p>
-          <button className="mt-6 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow hover:bg-blue-700 transition">
+          <button
+            onClick={handleRedirect}
+            className="mt-6 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow hover:bg-blue-700 transition"
+          >
             Free Consultation →
           </button>
         </div>
@@ -24,7 +35,7 @@ const HeroHomePage = () => {
         {/* Right Image */}
         <div className="w-full md:w-1/2 flex justify-center md:justify-end">
           <Image
-            src="/Images/Container.svg"   // ✅ correct path from /public
+            src="/Images/Container.svg"
             alt="Container"
             width={500}
             height={500}
@@ -32,7 +43,6 @@ const HeroHomePage = () => {
             priority
           />
         </div>
-
       </div>
     </section>
   );
