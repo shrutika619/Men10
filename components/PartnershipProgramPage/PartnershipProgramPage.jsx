@@ -1,560 +1,322 @@
-"use client"
-import React, { useState } from "react";
-const PartnershipProgramPage = () => {
-  const [mobile, setMobile] = useState("");
-  const [agree, setAgree] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpVerified, setOtpVerified] = useState(false);
+"use client";
 
-  const [formData, setFormData] = useState({
-    hospitalName: "",
-    officialCallingNumber: "",
-    hospitalEmailID: "",
-    areaNameOnly: "",
-    hospitalInfo: "",
-    cityNameOnly: "",
-    hospitalDescription: "",
-    fullAddress: "",
-    googleMapsLink: "",
-    ownerName: "",
-    ownerContactNumber: "",
-    contactPersonName: "",
-    contactPersonEmail: "",
-    attendantName: "",
-    attendantNumber: "",
-    finalOtpMobile: "",
-  });
+import { useState } from "react";
+import { useRouter } from "next/navigation"; // ✅ import router for redirect
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-  const [ownerProfilePhoto, setOwnerProfilePhoto] = useState(null);
-  const [hospitalInteriorPhoto, setHospitalInteriorPhoto] = useState(null);
-  const [hospitalFrontPhoto, setHospitalFrontPhoto] = useState(null);
-  const [doctorClaimPhoto, setDoctorClaimPhoto] = useState(null);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-
-  const [finalOtpSent, setFinalOtpSent] = useState(false);
-  const [finalOtp, setFinalOtp] = useState("");
-
-  const isValidMobile = /^[6-9]\d{9}$/.test(mobile);
+export default function ClinicAuth() {
+  const [step, setStep] = useState(0);
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [mode, setMode] = useState("");
+  const router = useRouter(); // ✅ initialize router
 
   const handleSendOTP = () => {
-    if (!isValidMobile || !agree) {
-      alert("Please enter valid mobile and accept terms.");
-      return;
+    if (phone.length === 10) {
+      setStep(2);
+    } else {
+      alert("Please enter valid 10-digit number");
     }
-    setOtpSent(true);
-    alert(`OTP sent to +91${mobile}`);
+  };
+
+  // ✅ Smooth OTP Input Handler (auto next / backspace previous)
+  const handleOtpChange = (index, value) => {
+    if (/^\d?$/.test(value)) {
+      const newOtp = [...otp];
+      newOtp[index] = value;
+      setOtp(newOtp);
+
+      // Move to next input automatically
+      if (value && index < otp.length - 1) {
+        const next = document.getElementById(`otp-${index + 1}`);
+        if (next) next.focus();
+      }
+
+      // If backspace on empty input, move to previous input
+      if (!value && index > 0) {
+        const prev = document.getElementById(`otp-${index - 1}`);
+        if (prev) prev.focus();
+      }
+    }
   };
 
   const handleVerifyOTP = () => {
-    if (otp.length !== 6) {
-      alert("Please enter a 6-digit OTP.");
-      return;
+    const otpCode = otp.join("");
+    if (otpCode.length === 6) {
+      setStep(3);
+    } else {
+      alert("Enter full 6-digit OTP");
     }
-    alert("OTP verified successfully!");
-    setOtpVerified(true);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleRedirect = () => {
+    router.push("/joinnow"); // ✅ redirect to joinnow page
   };
 
-  const handleFileChange = (e, setter) => {
-    const file = e.target.files[0];
-    if (file) setter(file);
-  };
-
-  const handleGetFinalOTP = () => {
-    const finalMobile = formData.finalOtpMobile;
-    if (!/^[6-9]\d{9}$/.test(finalMobile)) {
-      alert("Please enter a valid 10-digit mobile number.");
-      return;
-    }
-    setFinalOtpSent(true);
-    alert(`OTP sent to +91${finalMobile}`);
-  };
-
-  const handleFormSubmit = () => {
-    if (!acceptedTerms) {
-      alert("Please accept Terms and Conditions.");
-      return;
-    }
-    
-    if (!finalOtpSent || finalOtp.length !== 6) {
-      alert("Please verify your mobile number with OTP.");
-      return;
-    }
-    
-    console.log("Form Submitted:", formData);
-    alert("Hospital registered successfully!");
-  };
+  const data = [
+    { name: "Start", value: 1000 },
+    { name: "3 Mo", value: 2500 },
+    { name: "6 Mo", value: 4000 },
+    { name: "9 Mo", value: 5200 },
+    { name: "1 Year", value: 6000 },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-2xl p-8">
-        <h2 className="text-3xl font-bold text-center mb-2">
-          MEN10 Partnership Program
-        </h2>
-        <p className="text-gray-500 text-center mb-6">
-          Log in / Sign up to continue.
-        </p>
+    <div className="min-h-screen bg-[#0c1220] flex items-center justify-center text-gray-900">
+      {/* STEP 0 - Welcome */}
+      {step === 0 && (
+        <div className="bg-white p-8 rounded-2xl shadow-lg w-[360px] text-center">
+          <h2 className="text-xl font-semibold mb-6">
+            Welcome to Clinic Portal
+          </h2>
+          <button
+            onClick={() => {
+              setMode("login");
+              setStep(1);
+            }}
+            className="w-full bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white py-2 rounded-lg font-medium hover:opacity-90 transition mb-3"
+          >
+            Existing User? Log In
+          </button>
+          <button
+            onClick={() => {
+              setMode("signup");
+              setStep(1);
+            }}
+            className="w-full border border-[#2563EB] text-[#2563EB] py-2 rounded-lg font-medium hover:bg-blue-50 transition"
+          >
+            New User? Sign Up
+          </button>
+        </div>
+      )}
 
-        {!otpVerified && (
-          <div className="max-w-sm mx-auto">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mobile Number
-              </label>
-              <div className="flex items-center border rounded-lg px-3 py-2">
-                <span className="text-gray-500 pr-2">+91</span>
-                <input
-                  type="tel"
-                  placeholder="9876543210"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  className="w-full outline-none text-gray-700 text-sm"
-                  disabled={otpSent}
-                />
-              </div>
-            </div>
+      {/* STEP 1 - Phone */}
+      {step === 1 && (
+        <div className="bg-white p-8 rounded-2xl shadow-lg w-[360px]">
+          <h2 className="text-2xl font-semibold text-center mb-4">
+            {mode === "login" ? "Log In" : "Sign Up"}
+          </h2>
+          <input
+            type="tel"
+            placeholder="Enter phone number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-2 focus:outline-none"
+          />
+          <p className="text-sm text-gray-500 mb-4">
+            OTP will be shared for verification
+          </p>
+          <button
+            onClick={handleSendOTP}
+            className="w-full bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white py-2 rounded-lg font-medium hover:opacity-90 transition"
+          >
+            Send OTP
+          </button>
+        </div>
+      )}
 
-            {!otpSent && (
-              <div className="flex items-center mb-4">
-                <input
-                  type="checkbox"
-                  checked={agree}
-                  onChange={() => setAgree(!agree)}
-                  className="w-4 h-4 text-purple-500 border-gray-300 rounded focus:ring-purple-400"
-                />
-                <label className="ml-2 text-sm text-gray-500">
-                  I agree to the{" "}
-                  <a href="#" className="text-purple-500 underline">
-                    Terms & Conditions
-                  </a>
-                </label>
-              </div>
-            )}
+      {/* STEP 2 - OTP */}
+      {step === 2 && (
+        <div className="bg-white p-8 rounded-2xl shadow-lg w-[360px]">
+          <h2 className="text-2xl font-semibold text-center mb-4">
+            {mode === "login" ? "Log In" : "Sign Up"}
+          </h2>
+          <p className="text-center text-gray-500 mb-4">
+            Enter 6-digit OTP sent to xxxxxx{phone.slice(-4)}
+          </p>
 
-            {!otpSent ? (
-              <button
-                onClick={handleSendOTP}
-                disabled={!agree || !isValidMobile}
-                className={`w-full py-2 rounded-lg text-sm font-medium text-white ${
-                  !agree || !isValidMobile
-                    ? "bg-purple-300 cursor-not-allowed"
-                    : "bg-purple-500 hover:bg-purple-600"
-                }`}
-              >
-                Send OTP
-              </button>
-            ) : (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Enter OTP
-                </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  placeholder="Enter 6-digit OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none"
-                />
-                <button
-                  onClick={handleVerifyOTP}
-                  className="w-full mt-3 py-2 rounded-lg text-white bg-purple-500 hover:bg-purple-600"
-                >
-                  Verify OTP
-                </button>
-              </div>
-            )}
+          {/* ✅ Smooth OTP inputs */}
+          <div className="flex justify-between mb-6">
+            {otp.map((digit, i) => (
+              <input
+                key={i}
+                id={`otp-${i}`}
+                type="text"
+                value={digit}
+                maxLength={1}
+                onChange={(e) => handleOtpChange(i, e.target.value)}
+                className="w-10 h-10 text-center border border-gray-300 rounded-lg focus:outline-none text-lg"
+              />
+            ))}
           </div>
-        )}
 
-        {otpVerified && (
-          <div className="space-y-8 mt-6">
-            <div>
-              <h3 className="text-xl font-bold mb-6 text-gray-800">
-                Hospital Details
-              </h3>
+          <button
+            onClick={handleVerifyOTP}
+            className="w-full bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white py-2 rounded-lg font-medium hover:opacity-90 transition"
+          >
+            Verify OTP
+          </button>
+        </div>
+      )}
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hospital Name
-                  </label>
-                  <input
-                    type="text"
-                    name="hospitalName"
-                    placeholder="e.g., Meditrina Hospital"
-                    value={formData.hospitalName}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
+      {/* STEP 3 - Partner Section */}
+      {step === 3 && (
+        <div className="w-full bg-white text-gray-800 overflow-y-auto py-10 px-4">
+          {/* ✅ NEW “Elevate Your Practice” Section */}
+          <section className="text-center mb-12">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Elevate Your Practice.{" "}
+              <span className="text-indigo-600">Join the MEN10 Network.</span>
+            </h1>
+            <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+              Partner with India’s leading sexual wellness clinic network. We
+              provide technology, expertise, and patient flow to help you build
+              a successful and reputable sexual health practice.
+            </p>
+            <button
+              onClick={handleRedirect} // ✅ redirects to /joinnow
+              className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:opacity-90 transition"
+            >
+              Join Now
+            </button>
+          </section>
+
+          {/* Features & Benefits */}
+          <section className="mb-12">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+              Features & Benefits
+            </h2>
+            <div className="space-y-3 max-w-xs mx-auto">
+              {[
+                "Increased Patient Flow – Access a growing base of targeted marketing and loyal patient referrals.",
+                "Advanced Technology Platform – Integrated lead, patient, analytics, and telemedicine solutions.",
+                "Proven Clinical Protocols – Follow evidence-based treatment practices and deliver proven results.",
+              ].map((text, i) => (
+                <div
+                  key={i}
+                  className="bg-gray-50 rounded-xl shadow-sm p-3 text-sm text-gray-700"
+                >
+                  {text}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Official Calling Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="officialCallingNumber"
-                    placeholder="+91 XXXX-XXX-XXX"
-                    value={formData.officialCallingNumber}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hospital Email ID
-                  </label>
-                  <input
-                    type="email"
-                    name="hospitalEmailID"
-                    placeholder="e.g., Meditrina Hospital"
-                    value={formData.hospitalEmailID}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Area Name Only
-                  </label>
-                  <input
-                    type="text"
-                    name="areaNameOnly"
-                    placeholder="Kothrud"
-                    value={formData.areaNameOnly}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hospital Info
-                  </label>
-                  <input
-                    type="text"
-                    name="hospitalInfo"
-                    placeholder="e.g., Meditrina Hospital"
-                    value={formData.hospitalInfo}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City Name Only
-                  </label>
-                  <input
-                    type="text"
-                    name="cityNameOnly"
-                    placeholder="Pune"
-                    value={formData.cityNameOnly}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hospital Description
-                </label>
-                <textarea
-                  name="hospitalDescription"
-                  placeholder="Enter complete hospital Description"
-                  value={formData.hospitalDescription}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full resize-none focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Address
-                </label>
-                <textarea
-                  name="fullAddress"
-                  placeholder="Enter complete hospital address"
-                  value={formData.fullAddress}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full resize-none focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Google Maps Link
-                </label>
-                <input
-                  type="url"
-                  name="googleMapsLink"
-                  placeholder="https://maps.app.goo.gl/..."
-                  value={formData.googleMapsLink}
-                  onChange={handleInputChange}
-                  className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                />
-              </div>
+              ))}
             </div>
+          </section>
 
-            <div>
-              <h3 className="text-xl font-bold mb-6 text-gray-800">
-                Key Personnel Details
-              </h3>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Owner Name
-                  </label>
-                  <input
-                    type="text"
-                    name="ownerName"
-                    placeholder=""
-                    value={formData.ownerName}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
+          {/* Roadmap to Success */}
+          <section className="mb-12">
+            <h2 className="text-lg font-semibold text-center text-gray-800 mb-4">
+              Your Roadmap to Success
+            </h2>
+            <div className="max-w-xs mx-auto space-y-3">
+              {[
+                "Become a MEN10 Partner – Join our elite network of clinics.",
+                "Daily New Customers – Receive steady flow of new patients.",
+                "Continuous Growth & Training – Get ongoing learning support.",
+                "93% Result & Satisfaction – Proven, effective protocols.",
+                "Without Side Effects – Safe, natural Ayurvedic treatments.",
+                "Achieve Lasting Success – Build a trusted practice for years.",
+              ].map((text, i) => (
+                <div
+                  key={i}
+                  className="bg-gray-50 rounded-xl p-3 shadow-sm text-sm text-gray-700"
+                >
+                  {text}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Owner Contact Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="ownerContactNumber"
-                    placeholder=""
-                    value={formData.ownerContactNumber}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Person Name
-                  </label>
-                  <input
-                    type="text"
-                    name="contactPersonName"
-                    placeholder=""
-                    value={formData.contactPersonName}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Person Email ID
-                  </label>
-                  <input
-                    type="email"
-                    name="contactPersonEmail"
-                    placeholder="person@hospital.com"
-                    value={formData.contactPersonEmail}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Attendant Name
-                  </label>
-                  <input
-                    type="text"
-                    name="attendantName"
-                    placeholder=""
-                    value={formData.attendantName}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Attendant Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="attendantNumber"
-                    placeholder=""
-                    value={formData.attendantNumber}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-full focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
+          </section>
 
-            <div>
-              <h3 className="text-xl font-bold mb-6 text-gray-800">
-                Media & Verification
-              </h3>
+          {/* Existing “Ready to Elevate” + Clinics + Contact */}
+          <section className="text-center mb-12">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              Ready to Elevate Your Practice?
+            </h2>
+            <p className="text-sm text-gray-500">
+              Click the button below to begin the partnership process.
+            </p>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Owner's Profile Photo
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, setOwnerProfilePhoto)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
+            <div className="mx-auto mt-6 bg-white shadow-sm rounded-xl p-4 border border-gray-100 w-full max-w-xs">
+              <p className="text-[12px] font-semibold text-gray-700 mb-2">
+                Proven Growth Trajectory
+              </p>
+              <ResponsiveContainer width="100%" height={140}>
+                <LineChart data={data}>
+                  <XAxis dataKey="name" hide />
+                  <YAxis hide />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#6C63FF"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "#6C63FF" }}
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hospital Front Photo
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, setHospitalFrontPhoto)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hospital Interior Photo
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, setHospitalInteriorPhoto)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Doctor's Cabin Photo
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, setDoctorClaimPhoto)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center mt-6">
-                <input
-                  type="checkbox"
-                  checked={acceptedTerms}
-                  onChange={() => setAcceptedTerms(!acceptedTerms)}
-                  className="w-4 h-4 text-purple-500 border-gray-300 rounded focus:ring-purple-400"
-                />
-                <label className="ml-2 text-sm text-gray-600">
-                  I accept the{" "}
-                  <a href="#" className="text-purple-500 underline">
-                    Terms and Conditions
-                  </a>{" "}
-                  for partnering with MEN10.
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-bold mb-6 text-gray-800">
-                Final Step: Verification
-              </h3>
-
-              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contact Person Number (for OTP)
-                </label>
-                <p className="text-xs text-gray-500 mb-3">
-                  Please provide the mobile number to receive a verification OTP.
-                </p>
-                
-                <div className="flex gap-3 mb-4">
-                  <input
-                    type="tel"
-                    name="finalOtpMobile"
-                    placeholder="10-digit number"
-                    value={formData.finalOtpMobile}
-                    onChange={handleInputChange}
-                    maxLength={10}
-                    disabled={finalOtpSent}
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none disabled:bg-gray-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleGetFinalOTP}
-                    disabled={finalOtpSent}
-                    className={`px-6 py-2.5 rounded-lg text-sm font-medium text-white ${
-                      finalOtpSent
-                        ? "bg-gray-300 cursor-not-allowed"
-                        : "bg-purple-500 hover:bg-purple-600"
-                    }`}
-                  >
-                    Get OTP
-                  </button>
-                </div>
-
-                {finalOtpSent && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Enter OTP
-                    </label>
-                    <p className="text-xs text-gray-500 mb-3">
-                      Enter the 6-digit code sent to your mobile number.
-                    </p>
-                    <div className="flex gap-2">
-                      {[0, 1, 2, 3, 4, 5].map((index) => (
-                        <input
-                          key={index}
-                          type="text"
-                          maxLength={1}
-                          value={finalOtp[index] || ""}
-                          onChange={(e) => {
-                            const newOtp = finalOtp.split("");
-                            newOtp[index] = e.target.value;
-                            setFinalOtp(newOtp.join(""));
-                            if (e.target.value && index < 5) {
-                              const nextInput = e.target.nextElementSibling;
-                              if (nextInput) nextInput.focus();
-                            }
-                          }}
-                          className="w-12 h-12 text-center border border-gray-300 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                </LineChart>
+              </ResponsiveContainer>
+              <p className="text-[10px] text-green-600 font-semibold mt-1">
+                +300% Year 1 Average
+              </p>
             </div>
 
             <button
-              type="button"
-              onClick={handleFormSubmit}
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-lg transition-colors"
+              onClick={handleRedirect} // ✅ redirects to /joinnow
+              className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-semibold py-2 px-6 rounded-lg mt-5 shadow-md hover:opacity-90 transition"
             >
-              Register Hospital
+              Get Started Now
             </button>
-          </div>
-        )}
-      </div>
+
+            <p className="text-[11px] text-gray-400 mt-2 max-w-xs mx-auto">
+              By getting started, you agree to our{" "}
+              <a href="#" className="text-indigo-500 hover:underline">
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a href="#" className="text-indigo-500 hover:underline">
+                Privacy Policy
+              </a>
+              .
+            </p>
+          </section>
+
+          {/* Clinics */}
+          <section className="text-center mb-12">
+            <h3 className="text-base font-semibold text-gray-800 mb-4">
+              Our Modern & Discreet Clinics
+            </h3>
+            <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
+              {["Reception", "Consultation", "Waiting Area", "Exterior"].map(
+                (text) => (
+                  <div
+                    key={text}
+                    className="bg-gray-100 rounded-xl shadow-sm py-6 flex items-center justify-center text-gray-700 font-medium hover:bg-gray-200 transition"
+                  >
+                    {text}
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+
+          {/* Contact */}
+          <section className="text-center">
+            <h3 className="text-base font-semibold text-gray-800 mb-3">
+              Contact Us
+            </h3>
+            <div className="bg-gray-50 rounded-xl p-5 shadow-sm max-w-xs mx-auto text-sm text-gray-600 leading-relaxed">
+              <p className="font-medium text-gray-800">MEN10 Pvt. Limited</p>
+              <p>
+                Plot No. [Number], Geeta Nagar,
+                <br />
+                Manewada, Nagpur, Maharashtra
+              </p>
+              <p className="text-indigo-500 font-semibold mt-2">7800-102-108</p>
+              <a
+                href="mailto:partners@men10.com"
+                className="text-indigo-500 hover:underline"
+              >
+                partners@men10.com
+              </a>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
-};
-
-export default PartnershipProgramPage;
+}
