@@ -1,9 +1,10 @@
-// app/layout.js (or layout.tsx)
+// app/layout.js
+'use client';
+import { usePathname } from 'next/navigation';
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";  // Ensure this path is correct
+import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,20 +16,25 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "men10",
-  description: "men10",
-};
-
 export default function RootLayout({ children }) {
+  const pathname = usePathname();
+  
+  // Pages jahan header-footer NAHI chahiye
+  const noLayoutPages = ['/startingadmin'];
+  const showLayout = !noLayoutPages.includes(pathname);
+
   return (
     <html lang="en">
+      <head>
+        <title>men10</title>
+        <meta name="description" content="men10" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Navbar /> {/* This should render the navbar */}
-        {children}  {/* Rest of your page content */}
-        <Footer/>
+        {showLayout && <Navbar />}
+        {children}
+        {showLayout && <Footer />}
       </body>
     </html>
   );

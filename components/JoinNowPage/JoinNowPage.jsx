@@ -1,7 +1,9 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation"; // ADDED: useRouter for navigation
 
 const JoinNowPage = () => {
+  const router = useRouter(); // ADDED: Initialize router
   const [formData, setFormData] = useState({
     hospitalName: "",
     officialCallingNumber: "",
@@ -63,30 +65,24 @@ const JoinNowPage = () => {
 
     console.log("Form Submitted:", formData);
     
-    // ✅ Show Review Page
-    setShowReviewPage(true);
+    // ADDED: Navigate to reviewform page after submission
+    router.push("/reviewform");
   };
 
   const handleBackToHome = () => {
-    // Reset to show registration form again
-    setShowReviewPage(false);
-    // In your actual app, you would navigate to home page here
     window.location.href = "/";
   };
 
-  // ✅ If review page should be shown, render it
+  // If review page should be shown, render it
   if (showReviewPage) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Logo */}
           <div className="text-center mb-12">
             <h1 className="text-5xl font-bold text-blue-600">MEN10</h1>
           </div>
 
-          {/* Main Card */}
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            {/* Icon */}
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,29 +91,24 @@ const JoinNowPage = () => {
               </div>
             </div>
 
-            {/* Heading */}
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Registration Under Review
             </h2>
 
-            {/* Description */}
             <p className="text-gray-600 mb-6 leading-relaxed">
               Thank you for submitting your details. Our team is now manually reviewing your application.
             </p>
 
-            {/* Info Box */}
             <div className="bg-blue-50 rounded-lg p-4 mb-6">
               <p className="text-blue-700 font-medium">
                 This process usually takes about 1-5 working days.
               </p>
             </div>
 
-            {/* Additional Info */}
             <p className="text-gray-600 text-sm mb-8 leading-relaxed">
               You will receive an email and SMS notification on your registered contact details once the review is complete. Please check your inbox (and spam folder).
             </p>
 
-            {/* Button */}
             <button 
               onClick={handleBackToHome}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200"
@@ -330,7 +321,7 @@ const JoinNowPage = () => {
         </div>
       </div>
 
-      {/* ✅ Submit Button */}
+      {/* Submit Button */}
       <button
         type="button"
         onClick={handleFormSubmit}
