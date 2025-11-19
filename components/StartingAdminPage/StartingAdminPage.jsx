@@ -14,18 +14,15 @@ export default function Page() {
     e.preventDefault();
     console.log(`Signing in as ${role === "admin" ? "Admin" : "Super Admin"}`);
     console.log(`Email: ${email}`);
-    
-    // Redirect based on role - FIXED PATHS
-    if (role === "admin") {
-      router.push("/admin");  // Changed from /admin/dashboard to /admin
-    } else {
-      router.push("/superadmin");  // Changed from /superadmin/dashboard to /superadmin
-    }
+
+    // Redirect both roles to same page
+    router.push("/admindashboard");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-10">
+
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <Image src={Logo} alt="Logo" width={100} height={100} priority />
@@ -43,7 +40,7 @@ export default function Page() {
             className={`absolute top-1 bottom-1 w-1/2 rounded-lg transition-all duration-300 ${
               role === "admin"
                 ? "translate-x-0 bg-blue-600"
-                : "translate-x-full bg-red-600"
+                : "translate-x-full bg-blue-600"
             }`}
           />
           <button
@@ -68,14 +65,13 @@ export default function Page() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit}>
+
           <div className="mb-4">
             <label htmlFor="email" className="block text-gray-700 font-semibold mb-1 text-sm">
               Email address
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-3 text-gray-400">
-                📧
-              </span>
+              <span className="absolute left-3 top-3 text-gray-400">📧</span>
               <input
                 id="email"
                 type="email"
@@ -93,9 +89,7 @@ export default function Page() {
               Password
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-3 text-gray-400">
-                🔒
-              </span>
+              <span className="absolute left-3 top-3 text-gray-400">🔒</span>
               <input
                 id="password"
                 type="password"
@@ -120,14 +114,11 @@ export default function Page() {
 
           <button
             type="submit"
-            className={`w-full flex items-center justify-center gap-2 py-3 font-semibold text-white rounded-lg transition-all transform hover:scale-[1.02] ${
-              role === "admin"
-                ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:shadow-lg"
-                : "bg-gradient-to-r from-red-600 to-red-700 hover:shadow-lg"
-            }`}
+            className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-white rounded-lg transition-all transform hover:scale-[1.02] bg-gradient-to-r from-blue-600 to-blue-700 hover:shadow-lg"
           >
             <span>➡️</span> Sign in to Dashboard
           </button>
+
         </form>
       </div>
     </div>

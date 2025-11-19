@@ -1,7 +1,12 @@
 "use client";
+
 import React, { useState, useMemo, useCallback } from 'react';
-import { Filter, Search, Plus, SquarePen, Trash2, Bell, UserCircle, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+  Filter, Search, Plus, SquarePen, Trash2, Bell, Menu,
+  LayoutDashboard, MessageSquare, Building2, Video,
+  Stethoscope, Settings, ScrollText, Users
+} from 'lucide-react';
 
 // --- Mock Data ---
 const initialTeamData = [
@@ -12,7 +17,7 @@ const initialTeamData = [
   { id: 12349, name: 'Priya Verma', email: 'priya.verma@gmail.com', isActive: false, createdAt: '06/20/2025', lastIP: '172.16.0.2', lastLogin: '10 May 2025 08:45' },
 ];
 
-// --- Custom Toggle Component ---
+// --- Status Toggle ---
 const StatusToggle = ({ memberId, isActive, onToggle }) => (
   <label className="relative inline-flex items-center cursor-pointer">
     <input
@@ -21,82 +26,63 @@ const StatusToggle = ({ memberId, isActive, onToggle }) => (
       onChange={() => onToggle(memberId)}
       className="sr-only peer"
     />
-    <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+    <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
   </label>
 );
 
-// --- Main Component ---
 const TeamPage = () => {
   const router = useRouter();
+
   const [teamMembers, setTeamMembers] = useState(initialTeamData);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [notifications] = useState(10);
 
-  // --- Handlers ---
-  const handleSearchChange = useCallback((e) => {
-    setSearchTerm(e.target.value);
-  }, []);
+  // Menu with only routes — no active state
+  const menuItems = [
+    { icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard', route: '/admindashboard' },
+    { icon: <MessageSquare className="w-5 h-5" />, label: 'Inquiry Direct', route: null },
+    { icon: <Building2 className="w-5 h-5" />, label: 'In-clinic Consultation', route: null },
+    { icon: <Video className="w-5 h-5" />, label: 'Teleconsultation', route: null, badge: 1 },
+    { icon: <Stethoscope className="w-5 h-5" />, label: 'Clinic', route: '/clinics' },
+    { icon: <Settings className="w-5 h-5" />, label: 'Setup', route: null },
+    { icon: <ScrollText className="w-5 h-5" />, label: 'Audit Logs', route: null },
+    { icon: <Users className="w-5 h-5" />, label: 'Team', route: '/team' },
+  ];
 
+  // Only redirect — no active state change
+  const handleMenuClick = (route) => {
+    if (route) {
+      router.push(route);
+    }
+  };
+
+  const handleSearchChange = useCallback((e) => setSearchTerm(e.target.value), []);
   const handleStatusToggle = useCallback((id) => {
-    setTeamMembers(prevMembers =>
-      prevMembers.map(member =>
-        member.id === id ? { ...member, isActive: !member.isActive } : member
-      )
-    );
-    console.log(`Toggled status for member ID: ${id}`);
+    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m));
   }, []);
-
-  const handleBack = useCallback(() => {
-    window.history.back();
-  }, []);
-
-  const handleFilterToggle = useCallback(() => {
-    setIsFilterOpen(prev => !prev);
-  }, []);
-
+  const handleFilterToggle = useCallback(() => setIsFilterOpen(prev => !prev), []);
   const handleStatusFilter = useCallback((status) => {
     setStatusFilter(status);
     setIsFilterOpen(false);
   }, []);
 
-  const handleCreate = () => {
-    router.push('/addteam');
-  };
+  const handleCreate = () => router.push('/addteam');
+  const handleEdit = (id) => alert(`Edit member: ${id}`);
+  const handleDelete = (id) => setTeamMembers(prev => prev.filter(m => m.id !== id));
 
-  // ✅ FIX: Edit now opens the `/teamrole` page
-  const handleEdit = (id) => {
-    console.log(`Navigating to Team Role page for user ID: ${id}`);
-    router.push('/teamrole');
-  };
-
-  const handleDelete = (id) => {
-    setTeamMembers(prevMembers => prevMembers.filter(member => member.id !== id));
-  };
-
-  // --- Filtered list ---
   const filteredMembers = useMemo(() => {
     let result = teamMembers;
-    const lowercasedTerm = searchTerm.toLowerCase();
-
     if (searchTerm) {
-      result = result.filter(member =>
-        Object.values(member).some(value =>
-          String(value).toLowerCase().includes(lowercasedTerm)
-        )
-      );
+      const term = searchTerm.toLowerCase();
+      result = result.filter(m => Object.values(m).some(v => String(v).toLowerCase().includes(term)));
     }
-
-    if (statusFilter === 'active') {
-      result = result.filter(member => member.isActive);
-    } else if (statusFilter === 'inactive') {
-      result = result.filter(member => !member.isActive);
-    }
-
+    if (statusFilter === 'active') result = result.filter(m => m.isActive);
+    if (statusFilter === 'inactive') result = result.filter(m => !m.isActive);
     return result;
   }, [teamMembers, searchTerm, statusFilter]);
 
-  // --- Table Headers ---
   const tableHeaders = [
     { key: '#', label: '#' },
     { key: 'status', label: 'Status' },
@@ -110,139 +96,152 @@ const TeamPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-inter">
-      {/* Header */}
-      <header className="flex justify-between items-center pb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Team</h1>
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Bell className="w-6 h-6 text-gray-500 cursor-pointer hover:text-gray-700" />
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-xs text-white justify-center items-center">
-                <span className='absolute -top-1 right-0 text-[10px] font-bold'>10</span>
-              </span>
-            </span>
-          </div>
-          <UserCircle className="w-8 h-8 text-gray-500 cursor-pointer" />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col">
+        <div className="p-8 border-b border-gray-200">
+          <h1 className="text-3xl font-bold text-blue-600">MEN10</h1>
         </div>
-      </header>
-      
-      {/* Content */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg border border-gray-100">
-        {/* Control Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
-          <div className="flex w-full sm:w-auto space-x-2">
-            <button onClick={handleBack} className="p-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition duration-150">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
 
-            {/* Filter */}
-            <div className="relative">
-              <button
-                onClick={handleFilterToggle}
-                className={`p-3 bg-white border border-gray-300 rounded-lg shadow-sm transition duration-150 ${isFilterOpen ? 'ring-2 ring-indigo-500 bg-gray-100' : 'hover:bg-gray-50'}`}
-              >
-                <Filter className="w-5 h-5 text-gray-600" />
+        <nav className="flex-1 p-5">
+          <ul className="space-y-2">
+            {menuItems.map((item, index) => (
+              <li key={index}>
+                <button
+                  onClick={() => handleMenuClick(item.route)}
+                  className="w-full flex items-center gap-4 px-5 py-3.5 rounded-lg text-base font-medium transition-colors relative text-gray-700 hover:bg-gray-100"
+                >
+                  {item.icon}
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.badge && (
+                    <span className="bg-orange-500 text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <header className="bg-white border-b border-gray-200">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button className="p-2 hover:bg-gray-100 rounded transition-colors">
+                <Menu className="w-5 h-5 text-gray-700" />
               </button>
-
-              {isFilterOpen && (
-                <div className="absolute z-10 top-full left-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
-                  {['all', 'active', 'inactive'].map(status => (
-                    <button
-                      key={status}
-                      onClick={() => handleStatusFilter(status)}
-                      className={`w-full text-left px-4 py-2 text-sm capitalize transition duration-150 ${
-                        statusFilter === status
-                          ? 'bg-indigo-600 text-white font-semibold'
-                          : 'text-gray-700 hover:bg-indigo-50 hover:text-indigo-600'
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <h2 className="text-lg font-semibold text-gray-900">Team</h2>
             </div>
-
-            {/* Search */}
-            <div className="relative flex-grow">
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="flex items-center gap-4">
+              <button className="relative p-2 hover:bg-gray-100 rounded transition-colors">
+                <Bell className="w-5 h-5 text-gray-700" />
+                {notifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 min-w-[20px] h-5 flex items-center justify-center rounded-full font-bold">
+                    {notifications}
+                  </span>
+                )}
+              </button>
+              <button className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200">
+                <img
+                  src="https://ui-avatars.com/api/?name=AD&background=3b82f6&color=fff&bold=true"
+                  alt="User"
+                  className="w-full h-full object-cover"
+                />
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* Create Button */}
-          <button
-            onClick={handleCreate}
-            className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.02]"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create</span>
-          </button>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {tableHeaders.map(header => (
-                  <th
-                    key={header.key}
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${header.key === 'id' ? 'hidden sm:table-cell' : ''} ${header.key === 'lastIP' || header.key === 'lastLogin' ? 'hidden md:table-cell' : ''}`}
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+              <div className="flex w-full sm:w-auto gap-3">
+                <div className="relative">
+                  <button
+                    onClick={handleFilterToggle}
+                    className={`p-3 border rounded-lg ${isFilterOpen ? 'ring-2 ring-blue-500 bg-gray-100' : 'hover:bg-gray-50'}`}
                   >
-                    {header.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {filteredMembers.map((member, index) => (
-                <tr key={member.id} className="hover:bg-gray-50 transition duration-100">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{index + 1}</td>
-                  <td className="px-6 py-4"><StatusToggle memberId={member.id} isActive={member.isActive} onToggle={handleStatusToggle} /></td>
-                  <td className="px-6 py-4 hidden sm:table-cell text-sm text-gray-500">{member.id}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{member.name}</td>
-                  <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{member.email}</td>
-                  <td className="px-6 py-4 text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(member.id)}
-                        className="p-1 text-gray-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition duration-150"
-                      >
-                        <SquarePen className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(member.id)}
-                        className="p-1 text-gray-600 hover:text-red-600 rounded-full hover:bg-red-50 transition duration-150"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <Filter className="w-5 h-5 text-gray-600" />
+                  </button>
+                  {isFilterOpen && (
+                    <div className="absolute top-full mt-2 left-0 w-40 bg-white border rounded-lg shadow-lg z-10">
+                      {['all', 'active', 'inactive'].map(s => (
+                        <button
+                          key={s}
+                          onClick={() => handleStatusFilter(s)}
+                          className={`w-full text-left px-4 py-2 text-sm ${statusFilter === s ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 hidden sm:table-cell text-sm text-gray-500">{member.createdAt}</td>
-                  <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{member.lastIP}</td>
-                  <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{member.lastLogin}</td>
-                </tr>
-              ))}
+                  )}
+                </div>
 
-              {filteredMembers.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-6 py-10 text-center text-gray-500">
-                    No team members found matching your search.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search"
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+              </div>
+
+              <button
+                onClick={handleCreate}
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              >
+                <Plus className="w-5 h-5" />
+                Create
+              </button>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {tableHeaders.map(h => (
+                      <th key={h.key} className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase ${h.key === 'id' || h.key === 'lastIP' || h.key === 'lastLogin' ? 'hidden md:table-cell' : ''}`}>
+                        {h.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredMembers.map((m, i) => (
+                    <tr key={m.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium">{i + 1}</td>
+                      <td className="px-6 py-4"><StatusToggle memberId={m.id} isActive={m.isActive} onToggle={handleStatusToggle} /></td>
+                      <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{m.id}</td>
+                      <td className="px-6 py-4 font-medium">{m.name}</td>
+                      <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{m.email}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEdit(m.id)} className="p-2 hover:bg-blue-50 rounded"><SquarePen className="w-4 h-4" /></button>
+                          <button onClick={() => handleDelete(m.id)} className="p-2 hover:bg-red-50 rounded text-red-600"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{m.createdAt}</td>
+                      <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{m.lastIP}</td>
+                      <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-500">{m.lastLogin}</td>
+                    </tr>
+                  ))}
+                  {filteredMembers.length === 0 && (
+                    <tr><td colSpan={9} className="text-center py-10 text-gray-500">No members found</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );
