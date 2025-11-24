@@ -22,6 +22,13 @@ const Navbar = () => {
     "Low Sperm Count": "low-sperm-count",
   };
 
+  const clinicLinks = {
+    "Nagpur": "nagpur",
+    "Pune": "pune",
+    "Kolhapur": "kolhapur",
+    "Nashik": "nashik",
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-sm">
       <div className="flex items-center justify-between px-6 py-4">
@@ -65,11 +72,29 @@ const Navbar = () => {
               </ul>
             )}
           </li>
-          {/* ✅ Clinics placed after Conditions We Treat */}
-          <li>
-            <Link href="/clinics" className="hover:text-blue-600" onClick={closeDropdown}>
-              Clinics
-            </Link>
+          {/* Clinic Dropdown */}
+          <li className="relative flex items-center">
+            <button
+              onClick={() => toggleDropdown("clinic")}
+              className="hover:text-blue-600 flex items-center"
+            >
+              Clinic ▾
+            </button>
+            {openDropdown === "clinic" && (
+              <ul className="absolute top-full left-0 mt-2 w-64 bg-[#F3F6FF] shadow-lg rounded-lg py-2 text-black z-50">
+                {Object.entries(clinicLinks).map(([label, path], index) => (
+                  <li key={index}>
+                    <Link
+                      href={`/clinic/${path}`}
+                      className="block px-4 py-2 hover:text-blue-600"
+                      onClick={closeDropdown}
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         </ul>
 
@@ -128,9 +153,28 @@ const Navbar = () => {
                 </ul>
               )}
             </li>
-            {/* ✅ Clinics after Conditions We Treat in mobile too */}
+            {/* Clinic Dropdown Mobile */}
             <li>
-              <Link href="/clinics" onClick={closeDropdown}>Clinics</Link>
+              <button
+                onClick={() => toggleDropdown("clinic")}
+                className="w-full text-left"
+              >
+                Clinic ▾
+              </button>
+              {openDropdown === "clinic" && (
+                <ul className="mt-2 pl-4 space-y-2">
+                  {Object.entries(clinicLinks).map(([label, path], index) => (
+                    <li key={index}>
+                      <Link
+                        href={`/clinic/${path}`}
+                        onClick={closeDropdown}
+                      >
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
             <li>
               <Link href="/login" onClick={closeDropdown}>Login</Link>
