@@ -1,5 +1,7 @@
+"use client";
 import React, { useState } from "react";
 import { Search, MapPin, Phone, Navigation, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const initialClinics = [
   {
@@ -39,6 +41,8 @@ export default function HerosectionPunePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [clinics, setClinics] = useState(initialClinics);
 
+  const router = useRouter(); // <-- Added
+
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
@@ -71,12 +75,14 @@ export default function HerosectionPunePage() {
     window.location.href = `tel:${phone}`;
   };
 
+  // UPDATED: Redirect to clinicseedetails page
   const handleBookNow = (clinicName) => {
-    alert(`Booking initialized for ${clinicName}`);
+    router.push("/clinicseedetails");
   };
 
+  // UPDATED: Redirect to clinicseedetails page
   const handleSeeDetails = (clinic) => {
-    alert(`Showing details for ${clinic.name}\n\nRating: ${clinic.rating}\nDistance: ${clinic.distance}\nAddress: ${clinic.address}`);
+    router.push("/clinicseedetails");
   };
 
   return (
@@ -204,7 +210,7 @@ export default function HerosectionPunePage() {
 
               {/* Buttons */}
               <div className="grid grid-cols-2 gap-4">
-                <button 
+                <button
                   onClick={() => handleSeeDetails(clinic)}
                   className="bg-gray-100 hover:bg-gray-200 py-2.5 rounded-lg font-semibold text-sm transition-colors"
                 >

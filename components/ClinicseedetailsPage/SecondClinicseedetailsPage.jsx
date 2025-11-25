@@ -59,17 +59,26 @@ const ConditionTag = ({ icon: Icon, label, onToggle, active }) => {
 };
 
 const TimingsTable = ({ timings }) => {
+  const getSlotColor = (index) => {
+    if (index === 0) return "bg-blue-100 text-blue-700";
+    if (index === 1) return "bg-orange-100 text-orange-700";
+    if (index === 2) return "bg-indigo-100 text-indigo-700";
+    return "bg-gray-100 text-gray-700";
+  };
+
   return (
-    <div className="text-sm space-y-2">
+    <div className="space-y-3">
       {timings.map((d) => (
-        <div key={d.day} className="flex justify-between items-center">
-          <div className={`font-medium ${d.closed ? "text-red-500" : "text-gray-700"}`}>{d.day}</div>
+        <div key={d.day} className="flex items-center gap-3">
+          <div className={`font-semibold text-base w-24 ${d.closed ? "text-gray-500" : "text-gray-900"}`}>
+            {d.day}
+          </div>
           {d.closed ? (
-            <div className="text-red-500 text-xs">Closed</div>
+            <div className="bg-gray-100 text-gray-500 text-sm px-4 py-2 rounded-lg font-medium">Closed</div>
           ) : (
-            <div className="flex space-x-2">
+            <div className="flex gap-2 flex-1">
               {d.slots.map((s, i) => (
-                <div key={i} className="px-2 py-0.5 rounded-md text-xs bg-gray-50 border border-gray-100">
+                <div key={i} className={`px-3 py-2 rounded-lg text-sm font-medium flex-1 text-center ${getSlotColor(i)}`}>
                   {s}
                 </div>
               ))}
@@ -99,8 +108,6 @@ const EDChart = ({ data }) => {
 
 const MapEmbed = ({ address }) => {
   const query = encodeURIComponent(address);
-  const iframeSrc = `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-
   const [zoom, setZoom] = React.useState(15);
 
   const updateZoom = (change) => {
@@ -123,7 +130,6 @@ const MapEmbed = ({ address }) => {
         />
       </div>
 
-      {/* --- CUSTOM ZOOM BUTTONS --- */}
       <div className="absolute bottom-3 right-3 flex flex-col bg-white shadow-lg rounded-lg overflow-hidden border">
         <button
           onClick={() => updateZoom(1)}
@@ -141,7 +147,6 @@ const MapEmbed = ({ address }) => {
     </div>
   );
 };
-
 
 // ---------- Page-specific components ----------
 
@@ -198,7 +203,6 @@ const SidebarCard = ({ clinic, timings, onBookNow, onCall }) => {
         <TimingsTable timings={timings} />
       </div>
 
-      {/* UPDATED BUTTONS EXACT LIKE YOUR SCREENSHOT */}
       <div className="mt-4 space-y-3">
         <button
           onClick={onBookNow}
@@ -337,7 +341,6 @@ export default function ClinicDetailsPage() {
           </section>
         </div>
 
-        {/* RIGHT SIDEBAR */}
         <div className="space-y-6">
           <MapEmbed address={"Plot 50, Manish Nagar Road, Besa, Nagpur, Maharashtra 440024"} />
 
@@ -395,39 +398,33 @@ export default function ClinicDetailsPage() {
 
               <div>
                 <h5 className="font-medium mb-2">Select Time Slot</h5>
-                <div className="space-y-2">
-                  {clinicTimings.map((d) =>
-                    d.closed ? null : (
-                      <div
-                        key={d.day}
-                        className={`p-2 rounded-md ${selectedDay === d.day ? "bg-gray-50" : "bg-white"}`}
-                      >
-                        <div className="text-xs text-gray-500 font-semibold mb-1">{d.day}</div>
-                        <div className="flex flex-wrap gap-2">
+                {!selectedDay ? (
+                  <div className="text-sm text-gray-500 p-4 text-center bg-gray-50 rounded-lg">
+                    Please select a day first
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {clinicTimings
+                      .filter((d) => d.day === selectedDay && !d.closed)
+                      .map((d) => (
+                        <div key={d.day}>
                           {d.slots.map((s) => (
                             <button
                               key={s}
-                              onClick={() => {
-                                if (selectedDay === d.day) setSelectedSlot(s);
-                                else {
-                                  setSelectedDay(d.day);
-                                  setSelectedSlot(s);
-                                }
-                              }}
-                              className={`px-3 py-1 text-xs rounded-md border ${
-                                selectedSlot === s && selectedDay === d.day
-                                  ? "bg-indigo-600 text-white"
-                                  : "bg-white"
+                              onClick={() => setSelectedSlot(s)}
+                              className={`w-full mb-2 px-4 py-2.5 text-sm rounded-lg border transition-colors text-left ${
+                                selectedSlot === s
+                                  ? "bg-indigo-600 text-white border-indigo-600"
+                                  : "bg-white border-gray-200 hover:border-indigo-300 text-gray-700"
                               }`}
                             >
                               {s}
                             </button>
                           ))}
                         </div>
-                      </div>
-                    )
-                  )}
-                </div>
+                      ))}
+                  </div>
+                )}
               </div>
             </div>
 
