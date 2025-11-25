@@ -2,226 +2,100 @@ import React from "react";
 import { Check, X } from "lucide-react";
 
 const FifthHomePage = () => {
+  const comparisonData = [
+    {
+      feature: "Treatment Approach",
+      men10: "Customized Ayurvedic + Modern Medicine",
+      others: "Generic Allopathy",
+    },
+    {
+      feature: "Medicine",
+      men10: "In-house, Patented",
+      others: "Third-party",
+    },
+    {
+      feature: "Consultation Process",
+      men10: "Free Doctor Consultation",
+      others: "Paid Consultation",
+    },
+    {
+      feature: "Follow-up Care",
+      men10: "Regular Free Follow-up",
+      others: "Minimal support",
+    },
+    {
+      feature: "Satisfaction Guarantee",
+      men10: "90-day money-back guarantee*",
+      others: "No Guarantee",
+    },
+  ];
+
   return (
-    <div className="w-full py-12 px-4 bg-gradient-to-b from-blue-50 to-white">
-      <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-gray-800">
-        What Makes MEN10 Different?
+    <div className="w-full py-8 md:py-16 px-2 md:px-4 bg-white font-sans">
+      <h2 className="text-xl md:text-4xl font-bold text-center mb-6 md:mb-12 text-slate-900">
+        What Makes <span className="text-slate-900">MEN10</span> Different?
       </h2>
 
-      {/* Desktop View - Table */}
-      <div className="hidden lg:block max-w-5xl mx-auto overflow-hidden rounded-2xl shadow-2xl bg-white">
-        <table className="w-full">
+      {/* Container with horizontal scroll support for very small screens */}
+      <div className="max-w-5xl mx-auto overflow-x-auto rounded-xl shadow-lg border border-gray-100">
+        <table className="w-full min-w-[340px] border-collapse bg-white">
           <thead>
-            <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-              <th className="py-5 px-6 text-left text-lg font-semibold">Feature</th>
-              <th className="py-5 px-6 text-center text-lg font-semibold">MEN10</th>
-              <th className="py-5 px-6 text-center text-lg font-semibold">Other Platforms</th>
+            <tr>
+              {/* Feature Header */}
+              <th className="w-[25%] py-3 px-2 md:py-6 md:px-6 text-left bg-gray-50 text-xs md:text-lg font-bold text-slate-800 border-b border-gray-200">
+                Feature
+              </th>
+
+              {/* MEN10 Header (Blue) */}
+              <th className="w-[37.5%] py-3 px-2 md:py-6 md:px-6 text-center bg-[#4A90E2] text-white text-xs md:text-lg font-bold border-b border-[#4A90E2]">
+                MEN10
+              </th>
+
+              {/* Others Header (Gray) */}
+              <th className="w-[37.5%] py-3 px-2 md:py-6 md:px-6 text-center bg-gray-50 text-slate-600 text-xs md:text-lg font-bold border-b border-gray-200">
+                Others
+              </th>
             </tr>
           </thead>
           <tbody>
-            {/* Row 1 */}
-            <tr className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-              <td className="py-6 px-6 text-gray-700 font-medium">Treatment Approach</td>
-              <td className="py-6 px-6 text-center text-gray-700">
-                Customized Ayurvedic + Modern Medicine
-              </td>
-              <td className="py-6 px-6 text-center text-gray-700">Generic Allopathy</td>
-            </tr>
+            {comparisonData.map((item, index) => (
+              <tr key={index} className="border-b border-gray-100 last:border-none">
+                {/* Feature Name */}
+                <td className="py-3 px-2 md:py-5 md:px-6 text-[10px] md:text-base font-bold text-slate-700 bg-white leading-tight">
+                  {item.feature}
+                </td>
 
-            {/* Row 2 */}
-            <tr className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-              <td className="py-6 px-6 text-gray-700 font-medium">Medicine</td>
-              <td className="py-6 px-6 text-center text-gray-700">In-house, Patented</td>
-              <td className="py-6 px-6 text-center text-gray-700">Third-party</td>
-            </tr>
+                {/* MEN10 Column (Green Tint) */}
+                <td className="py-3 px-1 md:py-5 md:px-6 bg-[#ECFDF5] text-center align-middle">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2">
+                    <Check className="w-3 h-3 md:w-5 md:h-5 text-green-600 flex-shrink-0" strokeWidth={4} />
+                    <span className="text-[10px] md:text-base font-semibold text-slate-800 leading-tight">
+                      {item.men10}
+                    </span>
+                  </div>
+                </td>
 
-            {/* Row 3 */}
-            <tr className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-              <td className="py-6 px-6 text-gray-700 font-medium">Consultation Process</td>
-              <td className="py-6 px-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Check className="text-green-600 w-6 h-6" />
-                  <span className="text-gray-700">Free Doctor Consultation</span>
-                </div>
-              </td>
-              <td className="py-6 px-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <X className="text-red-600 w-6 h-6" />
-                  <span className="text-gray-700">Paid Medical Consultation</span>
-                </div>
-              </td>
-            </tr>
-
-            {/* Row 4 */}
-            <tr className="border-b border-gray-200 hover:bg-blue-50 transition-colors">
-              <td className="py-6 px-6 text-gray-700 font-medium">Follow-up Care</td>
-              <td className="py-6 px-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Check className="text-green-600 w-6 h-6" />
-                  <span className="text-gray-700">Regular Free Follow-up</span>
-                </div>
-              </td>
-              <td className="py-6 px-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <X className="text-red-600 w-6 h-6" />
-                  <span className="text-gray-700">Minimal follow-up support</span>
-                </div>
-              </td>
-            </tr>
-
-            {/* Row 5 */}
-            <tr className="hover:bg-blue-50 transition-colors">
-              <td className="py-6 px-6 text-gray-700 font-medium">Satisfaction Guarantee</td>
-              <td className="py-6 px-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Check className="text-green-600 w-6 h-6" />
-                  <span className="text-gray-700">90-day money-back guarantee*</span>
-                </div>
-              </td>
-              <td className="py-6 px-6 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <X className="text-red-600 w-6 h-6" />
-                  <span className="text-gray-700">No Guarantee</span>
-                </div>
-              </td>
-            </tr>
-
-            {/* ⭐ Proper centered note row */}
-            <tr>
-              <td colSpan="3" className="bg-gray-50 py-4 text-center">
-                <p className="text-sm text-gray-500">
-                  *Terms and conditions apply.
-                </p>
-              </td>
-            </tr>
+                {/* Others Column (White) */}
+                <td className="py-3 px-1 md:py-5 md:px-6 bg-white text-center align-middle">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2">
+                    <X className="w-3 h-3 md:w-5 md:h-5 text-red-400 flex-shrink-0" strokeWidth={4} />
+                    <span className="text-[10px] md:text-base text-slate-500 leading-tight">
+                      {item.others}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile/Tablet View - Cards */}
-      <div className="lg:hidden max-w-2xl mx-auto space-y-6">
         
-        {/* CARD 1 */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-blue-600 text-white py-3 px-4 font-semibold">
-            Treatment Approach
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Check className="text-green-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">MEN10</div>
-                <div className="text-gray-600 text-sm">Customized Ayurvedic + Modern Medicine</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <X className="text-red-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">Other Platforms</div>
-                <div className="text-gray-600 text-sm">Generic Allopathy</div>
-              </div>
-            </div>
-          </div>
+        {/* Footer Note */}
+        <div className="bg-gray-50 py-2 text-center">
+           <p className="text-[10px] md:text-xs text-gray-400">*Terms and conditions apply.</p>
         </div>
-
-        {/* CARD 2 */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-blue-600 text-white py-3 px-4 font-semibold">Medicine</div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Check className="text-green-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">MEN10</div>
-                <div className="text-gray-600 text-sm">In-house, Patented</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <X className="text-red-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">Other Platforms</div>
-                <div className="text-gray-600 text-sm">Third-party</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 3 */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-blue-600 text-white py-3 px-4 font-semibold">
-            Consultation Process
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Check className="text-green-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">MEN10</div>
-                <div className="text-gray-600 text-sm">Free Doctor Consultation</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <X className="text-red-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">Other Platforms</div>
-                <div className="text-gray-600 text-sm">Paid Medical Consultation</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 4 */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-blue-600 text-white py-3 px-4 font-semibold">Follow-up Care</div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Check className="text-green-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">MEN10</div>
-                <div className="text-gray-600 text-sm">Regular Free Follow-up</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <X className="text-red-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">Other Platforms</div>
-                <div className="text-gray-600 text-sm">Minimal follow-up support</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 5 */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-blue-600 text-white py-3 px-4 font-semibold">Satisfaction Guarantee</div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Check className="text-green-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">MEN10</div>
-                <div className="text-gray-600 text-sm">90-day money-back guarantee*</div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <X className="text-red-600 w-5 h-5 mt-0.5" />
-              <div>
-                <div className="font-semibold text-gray-800">Other Platforms</div>
-                <div className="text-gray-600 text-sm">No Guarantee</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ⭐ Proper centered mobile note */}
-        <p className="text-sm text-gray-500 text-center py-4">
-          *Terms and conditions apply.
-        </p>
       </div>
     </div>
   );
 };
 
-export default FifthHomePage;
+export default FifthHomePage
