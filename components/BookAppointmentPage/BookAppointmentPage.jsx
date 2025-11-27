@@ -1,7 +1,12 @@
+"use client";
+
 import React, { useState } from 'react';
+import { useRouter } from "next/navigation"; // ⭐ Add this for routing
 import { Calendar, Clock, MapPin, User, Phone, Mail } from 'lucide-react';
 
 const BookAppointmentPage = () => {
+  const router = useRouter(); // ⭐ Initialize router
+
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState(16);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -74,18 +79,21 @@ const BookAppointmentPage = () => {
     });
   };
 
+  // ⭐ ROUTE TO CONFIRM BOOKING PAGE
   const handleBooking = () => {
     if (!selectedDoctor || !selectedTime || !formData.fullName || !formData.contact || !acceptTerms) {
       alert('Please fill all required fields and select a time slot');
       return;
     }
-    alert(`Booking Confirmed!\nDoctor: ${doctors.find(d => d.id === selectedDoctor).name}\nDate: Tuesday, September ${selectedDate}, 2025\nTime: ${selectedTime}\nPatient: ${formData.fullName}`);
+
+    // ⭐ Redirect to /confirmbooking
+    router.push("/confirmbooking");
   };
 
   return (
     <div className="min-h-screen bg-gray-50 py-3 sm:py-6 px-3 sm:px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+
         <div className="text-center mb-4 sm:mb-6 md:mb-8">
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
             Book In-Clinic Appointment
@@ -96,9 +104,11 @@ const BookAppointmentPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {/* Main Content */}
+          
+          {/* LEFT SIDE */}
           <div className="lg:col-span-2 space-y-3 sm:space-y-4 md:space-y-6">
-            {/* Step 1: Select Doctor */}
+            
+            {/* SELECT DOCTOR */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 md:p-6">
               <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs sm:text-base">
@@ -145,9 +155,10 @@ const BookAppointmentPage = () => {
               </div>
             </div>
 
-            {/* Your Details */}
+            {/* YOUR DETAILS */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 md:p-6">
               <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Your Details</h2>
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <input
                   type="text"
@@ -187,22 +198,26 @@ const BookAppointmentPage = () => {
               </div>
             </div>
 
-            {/* Step 3: Select Date & Time */}
+            {/* DATE & TIME */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 md:p-6">
               <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs sm:text-base">
                   3
                 </div>
-                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Select Date & Time</h2>
+                <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">
+                  Select Date & Time
+                </h2>
               </div>
 
-              {/* Date Selector */}
               <div className="mb-4 sm:mb-6">
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <button className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg text-lg sm:text-xl">←</button>
-                  <span className="font-semibold text-gray-700 text-xs sm:text-sm md:text-base">Sep 14 - Sep 20, 2025</span>
+                  <span className="font-semibold text-gray-700 text-xs sm:text-sm md:text-base">
+                    Sep 14 - Sep 20, 2025
+                  </span>
                   <button className="p-1 sm:p-2 hover:bg-gray-100 rounded-lg text-lg sm:text-xl">→</button>
                 </div>
+
                 <div className="grid grid-cols-7 gap-1 sm:gap-2">
                   {dates.map((d) => (
                     <button
@@ -221,8 +236,10 @@ const BookAppointmentPage = () => {
                 </div>
               </div>
 
-              {/* Time Slots */}
+              {/* TIME SLOTS */}
               <div className="space-y-3 sm:space-y-4">
+
+                {/* MORNING */}
                 <div>
                   <h3 className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Morning</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -242,6 +259,7 @@ const BookAppointmentPage = () => {
                   </div>
                 </div>
 
+                {/* AFTERNOON */}
                 <div>
                   <h3 className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Afternoon</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -261,6 +279,7 @@ const BookAppointmentPage = () => {
                   </div>
                 </div>
 
+                {/* EVENING */}
                 <div>
                   <h3 className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Evening</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -279,15 +298,18 @@ const BookAppointmentPage = () => {
                     ))}
                   </div>
                 </div>
+
               </div>
             </div>
+
           </div>
 
-          {/* Booking Summary Sidebar */}
+          {/* RIGHT SIDE SUMMARY */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-5 md:p-6 lg:sticky lg:top-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Booking Summary</h2>
-              
+
+              {/* Doctor Summary */}
               {selectedDoctor ? (
                 <div className="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b">
                   <div className="flex items-center gap-2 sm:gap-3 mb-2">
@@ -312,6 +334,7 @@ const BookAppointmentPage = () => {
                 </div>
               )}
 
+              {/* Details */}
               <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                 <div className="flex justify-between text-xs sm:text-sm gap-2">
                   <span className="text-gray-600">Date:</span>
@@ -327,6 +350,7 @@ const BookAppointmentPage = () => {
                 </div>
               </div>
 
+              {/* Total */}
               <div className="border-t pt-3 sm:pt-4 mb-3 sm:mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-base sm:text-lg font-bold text-gray-900">Total:</span>
@@ -336,6 +360,7 @@ const BookAppointmentPage = () => {
                 </div>
               </div>
 
+              {/* Terms */}
               <div className="mb-3 sm:mb-4">
                 <p className="text-xs text-indigo-600 mb-2 sm:mb-3">
                   Limited slots available. Book now to secure your consultation!
@@ -353,6 +378,7 @@ const BookAppointmentPage = () => {
                 </label>
               </div>
 
+              {/* CONFIRM BUTTON */}
               <button
                 onClick={handleBooking}
                 className="w-full bg-indigo-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base"
@@ -360,9 +386,12 @@ const BookAppointmentPage = () => {
               >
                 Confirm Booking
               </button>
+
             </div>
           </div>
+
         </div>
+
       </div>
     </div>
   );
