@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
   const pathname = usePathname();
   
   // Pages jahan header-footer NAHI chahiye
-  const noLayoutPages = ['/startingadmin','/admin','/teamrole','/addteam','/team','/clinics'];
+  const noLayoutPages = ['/startingadmin','/admin','/teamrole','/addteam','/team','/clinics','/joinnow','/partnershipprogram','/reviewform','/hospitaldashboard'];
   const showLayout = !noLayoutPages.includes(pathname);
 
   return (
