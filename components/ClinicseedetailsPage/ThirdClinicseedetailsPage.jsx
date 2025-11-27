@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // <-- Yeh add kiya
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 
 const testimonials = [
@@ -30,6 +31,7 @@ const testimonials = [
 ];
 
 const ThirdClinicseedetailsPage = () => {
+  const router = useRouter(); // <-- Router hook
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -66,7 +68,12 @@ const ThirdClinicseedetailsPage = () => {
       nextSlide();
     }, 5000);
     return () => clearInterval(autoPlay);
-  }, [currentIndex]);
+  }, []);
+
+  // Button click handler - redirect to booking page
+  const handleBookAppointment = () => {
+    router.push('/bookappointment');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-16 px-4">
@@ -160,7 +167,10 @@ const ThirdClinicseedetailsPage = () => {
           Begin your journey towards better health and confidence. Book your<br />
           confidential consultation today.
         </p>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg px-10 py-4 rounded-lg shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl">
+        <button 
+          onClick={handleBookAppointment} // <-- Yeh handler add kiya
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg px-10 py-4 rounded-lg shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
+        >
           Book My Appointment Now
         </button>
       </div>
