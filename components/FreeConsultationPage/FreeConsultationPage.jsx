@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, X } from 'lucide-react';
 
-const ConsultationBooking = () => {
+const FreeConsultationPage = () => {
   const [selectedDay, setSelectedDay] = useState('Mon');
   const [selectedTime, setSelectedTime] = useState('');
   const [gender, setGender] = useState('');
@@ -483,4 +483,4 @@ const ConsultationBooking = () => {
   );
 };
 
-export default ConsultationBooking;
+export default FreeConsultationPage;
