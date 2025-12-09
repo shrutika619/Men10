@@ -1,3 +1,7 @@
+
+
+
+
 // app/layout.js
 'use client';
 import { usePathname } from 'next/navigation';
@@ -20,7 +24,7 @@ export default function RootLayout({ children }) {
   const pathname = usePathname();
   
   // Pages jahan header-footer NAHI chahiye
-  const noLayoutPages = ['/startingadmin','/admin','/teamrole','/addteam','/team','/clinics','/joinnow','/partnershipprogram','/reviewform','/hospitaldashboard','/add-doctor','/doctors','/timetable'];
+  const noLayoutPages = ['/startingadmin','/admin','/teamrole','/addteam','/team','/clinics','/joinnow','/partnershipprogram','/reviewform','/hospitaldashboard','/add-doctor','/doctors','/timetable','/dashboard'];
   const showLayout = !noLayoutPages.includes(pathname);
 
   return (
@@ -39,3 +43,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+
