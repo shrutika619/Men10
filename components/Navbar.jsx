@@ -34,7 +34,7 @@ const Navbar = () => {
       <div className="flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2" onClick={closeDropdown}>
-          <img src="/Images/logo.svg" alt="MEN10 Logo" className="h-[50px] w-[166px]" />
+          <img src="/Images/MEN10.svg" alt="MEN10 Logo" className="h-[50px] w-[122px]" />
         </Link>
 
         {/* Desktop Menu */}
