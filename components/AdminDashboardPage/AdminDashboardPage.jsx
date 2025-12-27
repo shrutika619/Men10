@@ -1,360 +1,487 @@
-"use client";
+'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
-  Bell, FileText, Video, Calendar, Stethoscope, Filter,
-  LayoutDashboard, Users, Settings, Building2, ScrollText,
-  MessageSquare, Menu, Search, MoreVertical
-} from 'lucide-react';
+  FileText,
+  MessageSquare,
+  Building2,
+  Video,
+  Filter,
+  X,
+  Plus,
+  Search,
+  Calendar,
+  User,
+  Phone,
+  Mail
+} from "lucide-react";
 
-const AdminDashboardPage = () => {
-  const router = useRouter();
+const initialStatsData = [
+  {
+    id: 'inquiry-direct',
+    title: "Inquiry Direct",
+    icon: FileText,
+    items: [
+      { label: "New", value: 3, status: "new" },
+      { label: "Not Interested", value: 0, status: "not-interested" },
+      { label: "50:50", value: 1, bg: "bg-yellow-50", status: "maybe" },
+      { label: "Closed", value: 1, bg: "bg-pink-50", status: "closed" },
+      { label: "Offline", value: 12, bg: "bg-purple-50", status: "offline" },
+      { label: "Complete", value: 3, bg: "bg-green-50", status: "complete" },
+    ],
+  },
+  {
+    id: 'assessment-inquiry',
+    title: "Assessment Inquiry",
+    icon: MessageSquare,
+    items: [
+      { label: "New", value: 3, status: "new" },
+      { label: "Not Interested", value: 0, status: "not-interested" },
+      { label: "50:50", value: 1, bg: "bg-yellow-50", status: "maybe" },
+      { label: "Closed", value: 1, bg: "bg-pink-50", status: "closed" },
+      { label: "Offline", value: 12, bg: "bg-purple-50", status: "offline" },
+      { label: "Complete", value: 3, bg: "bg-green-50", status: "complete" },
+    ],
+  },
+  {
+    id: 'in-clinic',
+    title: "In Clinic Consultation",
+    icon: Building2,
+    items: [
+      { label: "New", value: 3, status: "new" },
+      { label: "Not Interested", value: 0, status: "not-interested" },
+      { label: "50:50", value: 1, bg: "bg-yellow-50", status: "maybe" },
+      { label: "Closed", value: 1, bg: "bg-pink-50", status: "closed" },
+      { label: "Online", value: 12, bg: "bg-purple-50", status: "online" },
+      { label: "Complete", value: 3, bg: "bg-green-50", status: "complete" },
+    ],
+  },
+  {
+    id: 'teleconsultation',
+    title: "Teleconsultation",
+    icon: Video,
+    items: [
+      { label: "New", value: 3, status: "new" },
+      { label: "Done", value: 3, bg: "bg-green-50", status: "done" },
+      { label: "Pending", value: 0, bg: "bg-orange-50", status: "pending" },
+      { label: "Canceled", value: 1, bg: "bg-pink-50", status: "canceled" },
+      { label: "Sell Done", value: 1, bg: "bg-yellow-50", status: "sell-done" },
+      { label: "Sell Done", value: 12, bg: "bg-green-50", status: "sell-done-2" },
+    ],
+  },
+];
 
-  const [notifications] = useState(10);
-  const [activeMenu, setActiveMenu] = useState('Dashboard');
-  const [selectedCity, setSelectedCity] = useState('City');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
+// Mock patient data
+const mockPatients = {
+  'inquiry-direct': [
+    { id: 1, name: 'John Doe', phone: '+91-9876543210', email: 'john@example.com', status: 'new', date: '2024-12-27' },
+    { id: 2, name: 'Jane Smith', phone: '+91-9876543211', email: 'jane@example.com', status: 'new', date: '2024-12-27' },
+    { id: 3, name: 'Bob Wilson', phone: '+91-9876543212', email: 'bob@example.com', status: 'new', date: '2024-12-26' },
+    { id: 4, name: 'Alice Brown', phone: '+91-9876543213', email: 'alice@example.com', status: 'maybe', date: '2024-12-25' },
+    { id: 5, name: 'Charlie Davis', phone: '+91-9876543214', email: 'charlie@example.com', status: 'closed', date: '2024-12-24' },
+  ],
+  'assessment-inquiry': [
+    { id: 6, name: 'David Miller', phone: '+91-9876543215', email: 'david@example.com', status: 'new', date: '2024-12-27' },
+    { id: 7, name: 'Emma Wilson', phone: '+91-9876543216', email: 'emma@example.com', status: 'new', date: '2024-12-26' },
+    { id: 8, name: 'Frank Thomas', phone: '+91-9876543217', email: 'frank@example.com', status: 'new', date: '2024-12-25' },
+  ],
+  'in-clinic': [
+    { id: 9, name: 'Grace Lee', phone: '+91-9876543218', email: 'grace@example.com', status: 'new', date: '2024-12-27' },
+    { id: 10, name: 'Henry Clark', phone: '+91-9876543219', email: 'henry@example.com', status: 'new', date: '2024-12-26' },
+  ],
+  'teleconsultation': [
+    { id: 11, name: 'Isabel Martinez', phone: '+91-9876543220', email: 'isabel@example.com', status: 'new', date: '2024-12-27' },
+    { id: 12, name: 'Jack Anderson', phone: '+91-9876543221', email: 'jack@example.com', status: 'pending', date: '2024-12-26' },
+  ],
+};
 
-  const menuItems = [
-    { icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard', badge: null },
-    { icon: <MessageSquare className="w-5 h-5" />, label: 'Inquiry Direct', badge: null },
-    { icon: <Building2 className="w-5 h-5" />, label: 'In-clinic Consultation', badge: null },
-    { icon: <Video className="w-5 h-5" />, label: 'Teleconsultation', badge: 1 },
-    { icon: <Stethoscope className="w-5 h-5" />, label: 'Clinic', badge: null },
-    { icon: <Settings className="w-5 h-5" />, label: 'Setup', badge: null },
-    { icon: <ScrollText className="w-5 h-5" />, label: 'Audit Logs', badge: null },
-    { icon: <Users className="w-5 h-5" />, label: 'Team', badge: null }
-  ];
+export default function AdminDashboardPage() {
+  const [statsData, setStatsData] = useState(initialStatsData);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState(null);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState(null);
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [orderFormData, setOrderFormData] = useState({
+    patientName: '',
+    phone: '',
+    email: '',
+    service: '',
+    notes: ''
+  });
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const cities = ['Nagpur', 'Mumbai', 'Pune', 'Delhi', 'Bangalore'];
-
-  const hospitals = [
-    {
-      id: '#DR9087',
-      name: 'Care Multi Specialist Hospital',
-      contact: '9987909023',
-      email: 'care@abc.com',
-      address: 'Wardha Rd, Sita Burdi, Nagpur.',
-      doctors: '10 Doctors',
-      status: 'Active'
-    },
-    {
-      id: '#DR9088',
-      name: 'City Health Hospital',
-      contact: '9876543210',
-      email: 'city@abc.com',
-      address: 'Ambazari Rd, Nagpur.',
-      doctors: '12 Doctors',
-      status: 'Active'
-    }
-  ];
-
-  const handlePlaceOrder = (service) => {
-    alert(`Place Order clicked for ${service}`);
+  // Open list modal
+  const handleStatClick = (section, status, label) => {
+    if (status === 'not-interested') return;
+    setSelectedSection(section);
+    setSelectedStatus({ status, label });
+    setModalType('list');
+    setShowModal(true);
   };
 
-  const handleStatClick = (service, stat) => {
-    alert(`Clicked ${stat.label} (${stat.value}) in ${service}`);
+  // Open order form
+  const handlePlaceOrder = (section) => {
+    setSelectedSection(section);
+    setShowOrderForm(true);
   };
 
-  const serviceCards = [
-    {
-      icon: <FileText className="w-8 h-8 text-gray-700" />,
-      title: "Inquiry Direct",
-      stats: [
-        { label: "New", value: "03", bg: "bg-purple-100" },
-        { label: "Not Interested", value: "00", bg: "bg-orange-50" },
-        { label: "50/50", value: "01", bg: "bg-yellow-50" },
-        { label: "Closed", value: "01", bg: "bg-pink-50" },
-        { label: "Offline", value: "12", bg: "bg-purple-100" },
-        { label: "Complete", value: "03", bg: "bg-teal-100" }
-      ]
-    },
-    {
-      icon: <Calendar className="w-8 h-8 text-gray-700" />,
-      title: "Assessment Inquiry",
-      stats: [
-        { label: "New", value: "03", bg: "bg-purple-100" },
-        { label: "Not Interested", value: "00", bg: "bg-orange-50" },
-        { label: "50/50", value: "01", bg: "bg-yellow-50" },
-        { label: "Closed", value: "01", bg: "bg-pink-50" },
-        { label: "Offline", value: "12", bg: "bg-purple-100" },
-        { label: "Complete", value: "03", bg: "bg-teal-100" }
-      ]
-    },
-    {
-      icon: <Stethoscope className="w-8 h-8 text-gray-700" />,
-      title: "In Clinic Consultation",
-      stats: [
-        { label: "New", value: "03", bg: "bg-purple-100" },
-        { label: "Not Interested", value: "00", bg: "bg-orange-50" },
-        { label: "50/50", value: "01", bg: "bg-yellow-50" },
-        { label: "Closed", value: "01", bg: "bg-pink-50" },
-        { label: "Online", value: "12", bg: "bg-purple-100" },
-        { label: "Complete", value: "03", bg: "bg-teal-100" }
-      ]
-    },
-    {
-      icon: <Video className="w-8 h-8 text-gray-700" />,
-      title: "Teleconsultation",
-      stats: [
-        { label: "New", value: "03", bg: "bg-purple-100" },
-        { label: "Done", value: "03", bg: "bg-teal-100" },
-        { label: "Pending", value: "00", bg: "bg-yellow-50" },
-        { label: "Canceled", value: "01", bg: "bg-pink-50" },
-        { label: "Sell Done", value: "01", bg: "bg-orange-50" },
-        { label: "Sell Done", value: "12", bg: "bg-yellow-50" }
-      ]
-    }
-  ];
-
-  // Updated handler with Clinic & Team redirects
-  const handleMenuClick = (label) => {
-    if (label === 'Clinic') {
-      router.push('/clinics');
-      return;
-    }
-    if (label === 'Team') {
-      router.push('/team');
-      return;
-    }
-    setActiveMenu(label);
+  // Get filtered patients
+  const getFilteredPatients = () => {
+    if (!selectedSection || !selectedStatus) return [];
+    
+    const patients = mockPatients[selectedSection.id] || [];
+    return patients.filter(p => {
+      const matchesStatus = p.status === selectedStatus.status;
+      const matchesSearch = searchTerm === '' || 
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.phone.includes(searchTerm) ||
+        p.email.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesSearch;
+    });
   };
 
-  const renderDashboard = () => (
-    <div className="space-y-5">
-      {serviceCards.map((card, index) => (
-        <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-5 flex items-center justify-between border-b border-gray-100">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-gray-50 rounded-lg">
-                {card.icon}
-              </div>
-              <h3 className="text-base font-semibold text-gray-900">{card.title}</h3>
-            </div>
-            <button
-              className="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
-              onClick={() => handlePlaceOrder(card.title)}
-            >
-              Place Order
-            </button>
-          </div>
-          <div className="grid grid-cols-6 divide-x divide-gray-100">
-            {card.stats.map((stat, statIndex) => (
-              <button
-                key={statIndex}
-                onClick={() => handleStatClick(card.title, stat)}
-                className={`p-5 text-center hover:opacity-75 transition-all ${stat.bg}`}
-              >
-                <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                <div className="text-xs text-gray-600 font-medium">{stat.label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  // Handle status change
+  const handleStatusChange = (patientId, newStatus) => {
+    const oldStatus = selectedStatus.status;
+    
+    setStatsData(prev => prev.map(section => {
+      if (section.id === selectedSection.id) {
+        return {
+          ...section,
+          items: section.items.map(item => {
+            if (item.status === oldStatus) {
+              return { ...item, value: Math.max(0, item.value - 1) };
+            }
+            if (item.status === newStatus) {
+              return { ...item, value: item.value + 1 };
+            }
+            return item;
+          })
+        };
+      }
+      return section;
+    }));
 
-  const renderSetup = () => (
-    <>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <button
-              onClick={() => setShowCityDropdown(!showCityDropdown)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg flex items-center gap-2 text-sm hover:bg-gray-50 transition-colors"
-            >
-              <Filter size={16} />
-              <span>{selectedCity}</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showCityDropdown && (
-              <div className="absolute top-full mt-1 left-0 bg-white border border-gray-200 rounded-lg shadow-lg w-48 z-10">
-                {cities.map((city) => (
-                  <button
-                    key={city}
-                    onClick={() => {
-                      setSelectedCity(city);
-                      setShowCityDropdown(false);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg font-medium">06 New</div>
-          <div className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg font-medium">03 Active</div>
-          <div className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded-lg font-medium">00 Inactive</div>
-          <div className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg font-medium">00 Block</div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Doctors</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {hospitals.map((hosp, index) => (
-              <tr key={index} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 text-gray-900 font-medium">{hosp.id}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center text-purple-700 font-semibold">
-                      C
-                    </div>
-                    <span className="text-gray-900 font-medium">{hosp.name}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-gray-900">{hosp.contact}</div>
-                  <div className="text-gray-500 text-xs mt-0.5">{hosp.email}</div>
-                </td>
-                <td className="px-6 py-4 text-gray-700">{hosp.address}</td>
-                <td className="px-6 py-4 text-gray-900 font-medium">{hosp.doctors}</td>
-                <td className="px-6 py-4">
-                  <span className="px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
-                    {hosp.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                    <MoreVertical className="w-5 h-5 text-gray-500" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
-  );
-
-  const renderContent = () => {
-    if (activeMenu === 'Clinic' || activeMenu === 'Team') return null;
-
-    switch (activeMenu) {
-      case 'Dashboard':
-        return renderDashboard();
-      case 'Setup':
-        return renderSetup();
-      default:
-        return (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{activeMenu}</h3>
-              <p className="text-gray-600">This section is under development</p>
-            </div>
-          </div>
-        );
+    // Update mock data
+    const sectionPatients = mockPatients[selectedSection.id];
+    const patient = sectionPatients.find(p => p.id === patientId);
+    if (patient) {
+      patient.status = newStatus;
     }
+    
+    setShowModal(false);
+  };
+
+  // Submit order form
+  const handleSubmitOrder = (e) => {
+    e.preventDefault();
+    
+    const newPatient = {
+      id: Date.now(),
+      name: orderFormData.patientName,
+      phone: orderFormData.phone,
+      email: orderFormData.email,
+      status: 'new',
+      date: new Date().toISOString().split('T')[0],
+      notes: orderFormData.notes
+    };
+
+    // Add to mock patients
+    if (!mockPatients[selectedSection.id]) {
+      mockPatients[selectedSection.id] = [];
+    }
+    mockPatients[selectedSection.id].unshift(newPatient);
+
+    // Update stats
+    setStatsData(prev => prev.map(section => {
+      if (section.id === selectedSection.id) {
+        return {
+          ...section,
+          items: section.items.map(item => {
+            if (item.status === 'new') {
+              return { ...item, value: item.value + 1 };
+            }
+            return item;
+          })
+        };
+      }
+      return section;
+    }));
+
+    // Reset form
+    setOrderFormData({
+      patientName: '',
+      phone: '',
+      email: '',
+      service: '',
+      notes: ''
+    });
+    setShowOrderForm(false);
+    
+    alert('Order placed successfully!');
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-8 border-b border-gray-200">
-          <h1 className="text-3xl font-bold text-blue-600">MEN10</h1>
+    <div className="min-h-screen bg-white p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg hover:bg-gray-100">
+            <Filter className="w-4 h-4" />
+            <span className="text-sm">Filters</span>
+          </button>
         </div>
-        <nav className="flex-1 p-5">
-          <ul className="space-y-2">
-            {menuItems.map((item, index) => (
-              <li key={index}>
-                <button
-                  onClick={() => handleMenuClick(item.label)}
-                  className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-lg text-base font-medium transition-colors relative ${
-                    activeMenu === item.label && item.label !== 'Clinic' && item.label !== 'Team'
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {item.icon}
-                  <span className="flex-1 text-left">{item.label}</span>
-                  {item.badge && (
-                    <span className="bg-orange-500 text-white text-xs px-2.5 py-1 rounded-full font-bold">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
 
-      {/* Main Content - Hidden when on Clinic or Team page */}
-      {(activeMenu !== 'Clinic' && activeMenu !== 'Team') && (
-        <div className="flex-1 flex flex-col">
-          <header className="bg-white border-b border-gray-200">
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button className="p-2 hover:bg-gray-100 rounded transition-colors">
-                  <Menu className="w-5 h-5 text-gray-700" />
-                </button>
-                <h2 className="text-lg font-semibold text-gray-900">{activeMenu}</h2>
+        {/* Cards */}
+        <div className="space-y-4">
+          {statsData.map((section, index) => {
+            const Icon = section.icon;
+
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-sm p-4 flex flex-col xl:flex-row gap-4 hover:shadow-md transition-shadow"
+              >
+                {/* Left Section */}
+                <div className="flex items-center gap-3 xl:min-w-[220px]">
+                  <div className="p-2 bg-gray-50 rounded-lg">
+                    <Icon className="w-6 h-6 text-gray-700" />
+                  </div>
+                  <span className="font-semibold text-gray-900">
+                    {section.title}
+                  </span>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid gap-3 flex-1 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                  {section.items.map((item, i) => (
+                    <div
+                      key={i}
+                      onClick={() => item.value > 0 && handleStatClick(section, item.status, item.label)}
+                      className={`
+                        rounded-lg p-3 text-center transition-all
+                        ${item.bg || "bg-gray-50"}
+                        ${item.value > 0 ? "cursor-pointer hover:shadow-md hover:scale-105" : "cursor-default opacity-60"}
+                      `}
+                    >
+                      <div className="text-2xl font-bold text-gray-900">
+                        {String(item.value).padStart(2, "0")}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {item.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action */}
+                <div className="flex justify-end xl:items-center">
+                  <button 
+                    onClick={() => handlePlaceOrder(section)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2.5 rounded-lg w-full sm:w-auto flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Place Order
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <button className="relative p-2 hover:bg-gray-100 rounded transition-colors">
-                  <Bell className="w-5 h-5 text-gray-700" />
-                  {notifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 min-w-[20px] h-5 flex items-center justify-center rounded-full font-bold">
-                      {notifications}
-                    </span>
-                  )}
-                </button>
-                <button className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200">
-                  <img
-                    src="https://ui-avatars.com/api/?name=AD&background=3b82f6&color=fff&bold=true"
-                    alt="User"
-                    className="w-full h-full object-cover"
-                  />
-                </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Patient List Modal */}
+      {showModal && modalType === 'list' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">{selectedSection?.title}</h2>
+                <p className="text-sm text-gray-600 mt-1">Status: {selectedStatus?.label}</p>
+              </div>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="p-4 border-b">
+              <div className="relative">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, phone, or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
-            {activeMenu === 'Dashboard' && (
-              <div className="px-6 pb-4">
-                <button className="p-2 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
-                  <Filter className="w-4 h-4 text-gray-600" />
+
+            {/* Patient List */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-3">
+                {getFilteredPatients().length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <User className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No patients found</p>
+                  </div>
+                ) : (
+                  getFilteredPatients().map(patient => (
+                    <div key={patient.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{patient.name}</h3>
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Phone className="w-4 h-4" />
+                              <span>{patient.phone}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Mail className="w-4 h-4" />
+                              <span>{patient.email}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Calendar className="w-4 h-4" />
+                              <span>{patient.date}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Action Menu */}
+                        <div className="ml-4">
+                          <select
+                            onChange={(e) => handleStatusChange(patient.id, e.target.value)}
+                            defaultValue=""
+                            className="px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="" disabled>Change Status</option>
+                            <option value="new">New</option>
+                            <option value="maybe">50:50</option>
+                            <option value="closed">Closed</option>
+                            <option value="complete">Complete</option>
+                            <option value="offline">Offline</option>
+                            <option value="online">Online</option>
+                            <option value="not-interested">Not Interested</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Form Modal */}
+      {showOrderForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Place New Order</h2>
+              <button 
+                onClick={() => setShowOrderForm(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitOrder} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Patient Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={orderFormData.patientName}
+                  onChange={(e) => setOrderFormData({...orderFormData, patientName: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter patient name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={orderFormData.phone}
+                  onChange={(e) => setOrderFormData({...orderFormData, phone: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="+91-XXXXXXXXXX"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={orderFormData.email}
+                  onChange={(e) => setOrderFormData({...orderFormData, email: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="patient@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Service Type
+                </label>
+                <input
+                  type="text"
+                  value={selectedSection?.title}
+                  disabled
+                  className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={orderFormData.notes}
+                  onChange={(e) => setOrderFormData({...orderFormData, notes: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="3"
+                  placeholder="Additional notes..."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowOrderForm(false)}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Submit Order
                 </button>
               </div>
-            )}
-          </header>
-          <main className="flex-1 p-6 overflow-auto">
-            {renderContent()}
-          </main>
+            </form>
+          </div>
         </div>
       )}
     </div>
   );
-};
-
-export default AdminDashboardPage;
+}

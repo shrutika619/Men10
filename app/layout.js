@@ -23,8 +23,9 @@ const geistMono = Geist_Mono({
 export default function RootLayout({ children }) {
   const pathname = usePathname();
   
-  // Pages jahan header-footer NAHI chahiye
-  const noLayoutPages = ['/startingadmin','/admin','/teamrole','/addteam','/team','/clinics','/joinnow','/partnershipprogram','/reviewform','/hospitaldashboard','/add-doctor','/doctors','/timetable','/dashboard'];
+  // NO HEDER/FOOTER FOR THE FOLLOWING PAGES
+  const noLayoutPages = ['/startingadmin','/admin','/teamrole','/addteam','/team','/clinics','/joinnow','/partnershipprogram','/reviewform','/hospitaldashboard','/add-doctor','/doctors','/timetable','/dashboard','/loginadmin','/super-admin', 
+    '/admin/admindashboard',"/admin/inquirydirect","/admin/inclinicconsultation","/admin/teleconsultation","/admin/clinic","/admin/setup","/admin/auditlogs","/admin/team"];
   const showLayout = !noLayoutPages.includes(pathname);
 
   return (
