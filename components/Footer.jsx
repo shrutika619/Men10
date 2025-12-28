@@ -79,7 +79,7 @@ const Footer = () => {
       {/* Divider + Bottom Bar */}
       <div className="max-w-7xl mx-auto mt-10 border-t border-gray-700 pt-6 flex flex-col md:flex-row justify-between text-sm text-gray-400">
         <p>
-          © {new Date().getFullYear()} <span className="font-semibold">MEN10</span>. All rights reserved.
+          © 2026  <span className="font-semibold">MEN10</span>. All rights reserved.
         </p>
         <div className="space-x-6 mt-3 md:mt-0">
           <Link href="/privacy-policy">Privacy Policy</Link>

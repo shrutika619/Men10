@@ -39,18 +39,18 @@ const LoginAdminPage = () => {
             <h1 className="text-4xl font-bold tracking-tight mb-2">MEN10</h1>
             <div className="h-1 w-12 bg-blue-400 rounded-full mb-6"></div>
             <p className="text-blue-100 text-lg font-light leading-relaxed">
-              Precision management <br /> 
-              for modern enterprises.
+              MEN10 • Precision Management Portal <br /> 
+              Securely manage your healthcare services with ease.
             </p>
           </div>
           
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-sm text-blue-100/80">
               <CheckCircle className="w-4 h-4 text-blue-300" />
-              <span>Enterprise Grade Security</span>
+              <span> Security & Trust </span>
             </div>
             <p className="text-xs text-blue-200/60">
-              © 2024 MEN10 Systems. All rights reserved.
+              © 2028 MEN10 Systems. All rights reserved.
             </p>
           </div>
         </div>
