@@ -18,7 +18,7 @@ const menuItems = [
   { label: " Dashboard", icon: LayoutDashboard, path: "dashboard" },
   { label: "First Time User", icon: MessageSquare, path: "first-time-user" },
   { label: "Log In User", icon: MessageSquare, path: "log-in-user" },
-  { label: "In-clinic Consultation", icon: Building2, path: "inclinicconsultation" },
+  { label: "In-clinic Consultation", icon: Building2, path: "in-clinic-consultation" },
   { label: "Teleconsultation", icon: Video, path: "teleconsultation" },
   { label: "Clinic", icon: Stethoscope, path: "clinic" },
   { label: "Setup", icon: Settings, path: "setup" },
