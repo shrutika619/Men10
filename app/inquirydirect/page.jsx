@@ -1,5 +1,5 @@
 import React from "react";
-import InquiryDirectPage from "@/components/InquiryDirectPage/InquiryDirectPage";
+import InquiryDirectPage from "@/components/AdminFirstTimeUserPage/AdminFirstTimeUserPage";
 
 const page = () => {
   return (
