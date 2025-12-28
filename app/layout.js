@@ -25,8 +25,8 @@ export default function RootLayout({ children }) {
   
   // NO HEDER/FOOTER FOR THE FOLLOWING PAGES
   const noLayoutPages = ['/startingadmin','/admin','/teamrole','/addteam','/team','/clinics','/joinnow','/partnershipprogram','/reviewform','/hospitaldashboard','/add-doctor','/doctors','/timetable','/dashboard','/login-admin','/super-admin', 
-    '/admin/admindashboard',"/admin/inquirydirect","/admin/inclinicconsultation","/admin/teleconsultation","/admin/clinic","/admin/setup","/admin/auditlogs","/admin/team","/super-admin/super-admindashboard","/super-admin/inquirydirect","/super-admin/inclinicconsultation","/super-admin/teleconsultation","/super-admin/clinic","/super-admin/setup","/super-admin/auditlogs","/super-admin/team",
-    "/admin/first-time-user"];
+    '/admin/dashboard',"/admin/inquirydirect","/admin/inclinicconsultation","/admin/teleconsultation","/admin/clinic","/admin/setup","/admin/auditlogs","/admin/team","/super-admin/super-admindashboard","/super-admin/inquirydirect","/super-admin/inclinicconsultation","/super-admin/teleconsultation","/super-admin/clinic","/super-admin/setup","/super-admin/auditlogs","/super-admin/team",
+    "/admin/first-time-user","/super-admin/first-time-user","/super-admin/dashboard","/super-admin/log-in-user","/admin/log-in-user"];
   const showLayout = !noLayoutPages.includes(pathname);
 
   return (

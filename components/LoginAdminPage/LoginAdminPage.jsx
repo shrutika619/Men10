@@ -19,8 +19,8 @@ const LoginAdminPage = () => {
     setIsLoading(true);
     setTimeout(() => {
       window.location.href = loginMode === "ADMIN" 
-        ? "/admin/admindashboard" 
-        : "/super-admin/super-admindashboard";
+        ? "/admin/dashboard" 
+        : "/super-admin/dashboard";
       setIsLoading(false);
     }, 1000);
   };

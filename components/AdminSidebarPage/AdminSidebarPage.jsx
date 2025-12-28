@@ -15,8 +15,9 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 
 const menuItems = [
-  { label: "Admin Dashboard", icon: LayoutDashboard, path: "admindashboard" },
+  { label: " Dashboard", icon: LayoutDashboard, path: "dashboard" },
   { label: "First Time User", icon: MessageSquare, path: "first-time-user" },
+  { label: "Log In User", icon: MessageSquare, path: "log-in-user" },
   { label: "In-clinic Consultation", icon: Building2, path: "inclinicconsultation" },
   { label: "Teleconsultation", icon: Video, path: "teleconsultation" },
   { label: "Clinic", icon: Stethoscope, path: "clinic" },
