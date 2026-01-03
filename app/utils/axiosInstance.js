@@ -1,7 +1,8 @@
 import axios from "axios";
+import {Constants} from "@/app/utils/constants";
 
 const axiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    baseURL: Constants.API_BASE_URL,
     withCredentials: true, // ensures cookies are sent
 });
 

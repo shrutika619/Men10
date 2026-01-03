@@ -1,31 +1,29 @@
 "use client";
 import { useState } from "react";
-import axios from "axios";
-import {Constants} from "@/app/utils/constants";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import {sendLoginOtp, verifyLoginOtp} from "@/app/services/auth.service";
 
 const OTPLogin = () => {
+  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [step, setStep] = useState("send"); // "send" → "verify"
+  const [step, setStep] = useState("send");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Validate phone number
   const isValidPhone = (num) => /^[6-9]\d{9}$/.test(num);
 
-  // Send OTP API call
   const sendOtp = async () => {
     if (!isValidPhone(phone)) {
       setMessage("Enter a valid 10-digit mobile number");
       return;
     }
+
     setLoading(true);
-    setMessage("");
     try {
-      const res = await axios.post(Constants.urlEndPoints.SEND_OTP, {
-        mobileNo: phone,
-      });
-      setMessage(res.data.message || "OTP sent successfully");
+      const res = await sendLoginOtp(phone);
+      setMessage(res.message);
       setStep("verify");
     } catch (err) {
       setMessage(err.response?.data?.message || "Failed to send OTP");
@@ -34,44 +32,31 @@ const OTPLogin = () => {
     }
   };
 
-  // Verify OTP API call
   const verifyOtp = async () => {
     if (otp.length !== 6) {
-      setMessage("Enter a 6-digit OTP");
+      setMessage("Enter a valid 6-digit OTP");
       return;
     }
 
     setLoading(true);
-    setMessage("");
-
     try {
-      const res = await axios.post(Constants.urlEndPoints.VERIFY_OTP, {
-        mobileNo: phone,
-        otp,
-      });
+      const res = await verifyLoginOtp(phone, otp);
+      const { accessToken, refreshToken } = res.data;
 
-      console.log(res.data);
-      const { accessToken, refreshToken } = res.data.data;
-
-      // Send tokens to Next.js API route to set HttpOnly cookies
       await fetch("/api/set-tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accessToken, refreshToken }),
       });
 
-      setMessage(res.data.message || "OTP verified successfully");
-
-      // TODO : Redirect user here
-
+      toast.success(res.message);
+      router.push("/");
     } catch (err) {
-      console.error(err);
       setMessage(err.response?.data?.message || "Invalid or expired OTP");
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">

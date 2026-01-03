@@ -26,7 +26,7 @@ export async function POST() {
 
         // Update the access_token cookie
         const response = NextResponse.json({ success: true, accessToken });
-        response.cookies.set("access_token", accessToken, {
+        response.cookies.set("accessToken", accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "Strict",

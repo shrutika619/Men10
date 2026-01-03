@@ -1,6 +1,8 @@
 "use client";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation"; // ADDED: useRouter for navigation
+import React, {useEffect, useState} from "react";
+import { useRouter } from "next/navigation";
+import {toast} from "sonner";
+import {sendClinicOtp, submitClinicForm} from "@/app/services/clinic-auth.service"; // ADDED: useRouter for navigation
 
 const JoinNowPage = () => {
   const router = useRouter(); // ADDED: Initialize router
@@ -32,6 +34,17 @@ const JoinNowPage = () => {
   const [finalOtp, setFinalOtp] = useState("");
   const [showReviewPage, setShowReviewPage] = useState(false);
 
+  /* ---------------- PREFILL MOBILE FROM LOCAL STORAGE ---------------- */
+  useEffect(() => {
+    const savedMobile = localStorage.getItem("clinic_mobile");
+    if (savedMobile) {
+      setFormData((prev) => ({
+        ...prev,
+        finalOtpMobile: savedMobile,
+      }));
+    }
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -42,31 +55,86 @@ const JoinNowPage = () => {
     if (file) setter(file);
   };
 
-  const handleGetFinalOTP = () => {
-    const finalMobile = formData.finalOtpMobile;
-    if (!/^[6-9]\d{9}$/.test(finalMobile)) {
-      alert("Please enter a valid 10-digit mobile number.");
+  /* ---------------- SEND FINAL OTP ---------------- */
+  const handleGetFinalOTP = async () => {
+    const mobile = formData.finalOtpMobile;
+
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      toast.error("Enter a valid 10-digit mobile number");
       return;
     }
-    setFinalOtpSent(true);
-    alert(`OTP sent to +91${finalMobile}`);
+
+    // setLoading(true);
+    try {
+      await sendClinicOtp(mobile);
+      toast.success(`OTP sent successfully to +91${mobile}`);
+      setFinalOtpSent(true);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send OTP");
+    } finally {
+      // setLoading(false);
+    }
   };
 
-  const handleFormSubmit = () => {
+  /* ---------------- SUBMIT FORM ---------------- */
+  const handleFormSubmit = async () => {
     if (!acceptedTerms) {
-      alert("Please accept Terms and Conditions.");
+      toast.error("Please accept Terms & Conditions");
       return;
     }
 
     if (!finalOtpSent || finalOtp.length !== 6) {
-      alert("Please verify your mobile number with OTP.");
+      toast.error("Please verify OTP");
       return;
     }
 
-    console.log("Form Submitted:", formData);
-    
-    // ADDED: Navigate to reviewform page after submission
-    router.push("/reviewform");
+    const fd = new FormData();
+
+    fd.append("mobileNo", formData.finalOtpMobile);
+    fd.append("otp", finalOtp);
+    fd.append("clinicName", formData.hospitalName);
+    fd.append("city", formData.cityNameOnly);
+    fd.append("clinicDescription", formData.hospitalDescription);
+
+    fd.append("officeCallingNo", formData.officialCallingNumber);
+    fd.append("clinicEmail", formData.hospitalEmailID);
+    fd.append("areaName", formData.areaNameOnly);
+    fd.append("clinicInfo", formData.hospitalInfo);
+    fd.append("fulladdress", formData.fullAddress);
+    fd.append("googleMapsLink", formData.googleMapsLink);
+
+    fd.append("ownerName", formData.ownerName);
+    fd.append("ownerContactNo", formData.ownerContactNumber);
+    fd.append("contactPersonName", formData.contactPersonName);
+    fd.append("contactPersonEmail", formData.contactPersonEmail);
+    fd.append("attendantName", formData.attendantName);
+    fd.append("attendantNumber", formData.attendantNumber);
+
+    fd.append("termsAndConditions", acceptedTerms);
+
+    if (ownerProfilePhoto)
+      fd.append("ownerProfilePhoto", ownerProfilePhoto);
+
+    if (hospitalFrontPhoto)
+      fd.append("clinicfrontPhoto", hospitalFrontPhoto);
+
+    if (hospitalInteriorPhoto)
+      fd.append("clinicinteriorPhoto", hospitalInteriorPhoto);
+
+    if (doctorClaimPhoto)
+      fd.append("doctorCabinPhoto", doctorClaimPhoto);
+
+
+    // setLoading(true);
+    try {
+      const res = await submitClinicForm(fd);
+      toast.success(res.message);
+      router.push("/reviewform");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Form submission failed");
+    } finally {
+      // setLoading(false);
+    }
   };
 
   const handleBackToHome = () => {

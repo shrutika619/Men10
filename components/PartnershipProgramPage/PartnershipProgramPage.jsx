@@ -10,6 +10,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import {toast} from "sonner";
+import {sendClinicOtp, verifyClinicOtp} from "@/app/services/clinic-auth.service";
 
 export default function ClinicAuth() {
   const [step, setStep] = useState(0);
@@ -18,41 +20,95 @@ export default function ClinicAuth() {
   const [mode, setMode] = useState("");
   const router = useRouter(); // ✅ initialize router
 
-  const handleSendOTP = () => {
-    if (phone.length === 10) {
+  const isValidPhone = (num) => /^[6-9]\d{9}$/.test(num);
+
+  /* ---------------- SEND OTP ---------------- */
+  const handleSendOTP = async () => {
+    if (!isValidPhone(phone)) {
+      toast.error("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
+    // setLoading(true);
+    try {
+      const res = await sendClinicOtp(phone);
+
+      toast.success(res.message || "OTP sent successfully");
       setStep(2);
-    } else {
-      alert("Please enter valid 10-digit number");
+    } catch (err) {
+      const message = err.response?.data?.message;
+
+      if (message === "Please login") {
+        toast.info("Clinic already exists. Please login.");
+        // router.push("/login"); // TODO: Need to decide where to land
+        return;
+      }
+
+      toast.error(message || "Failed to send OTP");
+    } finally {
+      // setLoading(false);
     }
   };
 
-  // ✅ Smooth OTP Input Handler (auto next / backspace previous)
+  /* ---------------- OTP INPUT HANDLER ---------------- */
   const handleOtpChange = (index, value) => {
-    if (/^\d?$/.test(value)) {
-      const newOtp = [...otp];
-      newOtp[index] = value;
-      setOtp(newOtp);
+    if (!/^\d?$/.test(value)) return;
 
-      // Move to next input automatically
-      if (value && index < otp.length - 1) {
-        const next = document.getElementById(`otp-${index + 1}`);
-        if (next) next.focus();
-      }
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
 
-      // If backspace on empty input, move to previous input
-      if (!value && index > 0) {
-        const prev = document.getElementById(`otp-${index - 1}`);
-        if (prev) prev.focus();
-      }
+    if (value && index < otp.length - 1) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+
+    if (!value && index > 0) {
+      document.getElementById(`otp-${index - 1}`)?.focus();
     }
   };
 
-  const handleVerifyOTP = () => {
+  /* ---------------- VERIFY OTP ---------------- */
+  const handleVerifyOTP = async () => {
     const otpCode = otp.join("");
-    if (otpCode.length === 6) {
+
+    if (otpCode.length !== 6) {
+      toast.error("Enter full 6-digit OTP");
+      return;
+    }
+
+    // setLoading(true);
+    try {
+      const res = await verifyClinicOtp(phone, otpCode);
+      const data = res.data;
+
+      if(data.mobileNo){
+        localStorage.setItem("clinic_mobile", data.mobileNo);
+      }
+
+      // 🔁 Clinic already approved → redirect to login
+      if (data.shouldRedirectToLogin) {
+        toast.success(
+            data.message || "Clinic already approved. Please login."
+        );
+        // router.push("/login"); // TODO: Need to decide where to land
+        return;
+      }
+
+      // ❌ Clinic rejected
+      if (data.status === "rejected") {
+        toast.error(data.rejectionReason || "Clinic application rejected");
+        return;
+      }
+
+      // ✅ OTP verified, form not submitted
+      toast.success("OTP verified successfully");
       setStep(3);
-    } else {
-      alert("Enter full 6-digit OTP");
+    } catch (err) {
+      toast.error(
+          err.response?.data?.message || "Invalid or expired OTP"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
