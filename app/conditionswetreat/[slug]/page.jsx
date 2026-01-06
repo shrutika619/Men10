@@ -1,47 +1,22 @@
 "use client";
 import React from "react";
 
-// Import components directly (not dynamically)
-// Try multiple possible file locations
-let ErectileDysfunctionPage, LowSpermCountPage, PrematureEjaculationPage;
-
-try {
-  // Try importing from index file first
-  ErectileDysfunctionPage = require("@/components/ConditionsWeTreatPage/ErectileDysfunctionPage/index").default;
-} catch (e) {
-  try {
-    // Try importing from named file
-    ErectileDysfunctionPage = require("@/components/ConditionsWeTreatPage/ErectileDysfunctionPage/ErectileDysfunctionPage").default;
-  } catch (e2) {
-    console.error("Could not load ErectileDysfunctionPage");
-  }
-}
-
-try {
-  LowSpermCountPage = require("@/components/ConditionsWeTreatPage/LowSpermCountPage/index").default;
-} catch (e) {
-  try {
-    LowSpermCountPage = require("@/components/ConditionsWeTreatPage/LowSpermCountPage/LowSpermCountPage").default;
-  } catch (e2) {
-    console.error("Could not load LowSpermCountPage");
-  }
-}
-
-try {
-  PrematureEjaculationPage = require("@/components/ConditionsWeTreatPage/PrematureEjaculationPage/index").default;
-} catch (e) {
-  try {
-    PrematureEjaculationPage = require("@/components/ConditionsWeTreatPage/PrematureEjaculationPage/PrematureEjaculationPage").default;
-  } catch (e2) {
-    console.error("Could not load PrematureEjaculationPage");
-  }
-}
+// Import all components directly
+import DelayedEjaculationPage from "@/components/ConditionsWeTreatPage/DelayedEjaculationPage/DelayedEjaculationPage";
+import SexualDysfunctionPage from "@/components/ConditionsWeTreatPage/SexualDysfunctionPage/SexualDysfunctionPage";
+import ErectileDysfunctionPage from "@/components/ConditionsWeTreatPage/ErectileDysfunctionPage/ErectileDysfunctionPage";
+import LowSpermCountPage from "@/components/ConditionsWeTreatPage/LowSpermCountPage/LowSpermCountPage";
+import PrematureEjaculationPage from "@/components/ConditionsWeTreatPage/PrematureEjaculationPage/PrematureEjaculationPage";
+import CoupleSexProblemsPage from "@/components/ConditionsWeTreatPage/CoupleSexProblemsPage/CoupleSexProblemsPage";
 
 // Map slugs to their respective components
 const componentMap = {
+  "sexual-dysfunction": SexualDysfunctionPage,
   "erectile-dysfunction": ErectileDysfunctionPage,
-  "low-sperm-count": LowSpermCountPage,
   "premature-ejaculation": PrematureEjaculationPage,
+  "delayed-ejaculation": DelayedEjaculationPage,
+  "couple-sex-problems": CoupleSexProblemsPage,
+  "low-sperm-count": LowSpermCountPage,
 };
 
 const ConditionPage = ({ params }) => {
@@ -59,7 +34,7 @@ const ConditionPage = ({ params }) => {
             The condition page <span className="font-semibold">"{slug}"</span> could not be loaded.
           </p>
           <p className="text-sm text-gray-500 mb-6">
-            Available pages: {Object.keys(componentMap).filter(key => componentMap[key]).join(", ") || "None loaded"}
+            Available pages: {Object.keys(componentMap).join(", ")}
           </p>
           <div className="space-y-3">
             <button 
@@ -67,12 +42,6 @@ const ConditionPage = ({ params }) => {
               className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Go Home
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              className="w-full bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Reload Page
             </button>
           </div>
         </div>
