@@ -7,7 +7,7 @@ import SexualDysfunctionPage from "@/components/ConditionsWeTreatPage/SexualDysf
 import ErectileDysfunctionPage from "@/components/ConditionsWeTreatPage/ErectileDysfunctionPage/ErectileDysfunctionPage";
 import LowSpermCountPage from "@/components/ConditionsWeTreatPage/LowSpermCountPage/LowSpermCountPage";
 import PrematureEjaculationPage from "@/components/ConditionsWeTreatPage/PrematureEjaculationPage/PrematureEjaculationPage";
-import CoupleSexProblemsPage from "@/components/ConditionsWeTreatPage/CoupleSexProblemsPage/CoupleSexProblemsPage";s
+import CoupleSexProblemsPage from "@/components/ConditionsWeTreatPage/CoupleSexProblemsPage/CoupleSexProblemsPage";
 
 // Map slugs to their respective components
 const componentMap = {

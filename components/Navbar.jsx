@@ -1,17 +1,37 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 const Navbar = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const conditionsDropdownRef = useRef(null);
+  const clinicDropdownRef = useRef(null);
 
   const toggleDropdown = (menu) =>
     setOpenDropdown(openDropdown === menu ? null : menu);
+  
   const closeDropdown = () => {
     setOpenDropdown(null);
     setMobileMenuOpen(false);
   };
+
+  // ✅ Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const clickedInsideConditions = conditionsDropdownRef.current?.contains(event.target);
+      const clickedInsideClinic = clinicDropdownRef.current?.contains(event.target);
+      
+      if (!clickedInsideConditions && !clickedInsideClinic) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const conditionLinks = {
     "Sexual Dysfunction": "sexual-dysfunction",
@@ -55,7 +75,7 @@ const Navbar = () => {
           </li>
 
           {/* Conditions Dropdown */}
-          <li className="relative flex items-center">
+          <li className="relative flex items-center" ref={conditionsDropdownRef}>
             <button
               onClick={() => toggleDropdown("conditions")}
               className="hover:text-blue-600 flex items-center"
@@ -80,7 +100,7 @@ const Navbar = () => {
           </li>
 
           {/* Clinic Dropdown */}
-          <li className="relative flex items-center">
+          <li className="relative flex items-center" ref={clinicDropdownRef}>
             <button
               onClick={() => toggleDropdown("clinic")}
               className="hover:text-blue-600 flex items-center"
@@ -209,4 +229,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
