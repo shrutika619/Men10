@@ -50,7 +50,7 @@ const LoginAdminPage = () => {
               <span> Security & Trust </span>
             </div>
             <p className="text-xs text-blue-200/60">
-              © 2028 MEN10 Systems. All rights reserved.
+              © 2026 MEN10 Systems. All rights reserved.
             </p>
           </div>
         </div>
