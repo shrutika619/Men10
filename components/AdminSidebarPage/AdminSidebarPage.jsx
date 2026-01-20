@@ -20,7 +20,7 @@ const menuItems = [
   { label: "Log In User", icon: MessageSquare, path: "log-in-user" },
   { label: "In-clinic Consultation", icon: Building2, path: "in-clinic-consultation" },
   { label: "Teleconsultation", icon: Video, path: "teleconsultation" },
-  { label: "Clinic", icon: Stethoscope, path: "clinic" },
+  { label: "Clinics", icon: Stethoscope, path: "clinics" },
   { label: "Setup", icon: Settings, path: "setup" },
   { label: "Audit Logs", icon: ScrollText, path: "auditlogs" },
   { label: "Team", icon: Users, path: "team" },
