@@ -1,12 +1,14 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { getAllCities } from "@/app/services/clinic.service";
 
 const Navbar = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const conditionsDropdownRef = useRef(null);
   const clinicDropdownRef = useRef(null);
+  const [clinicLinks, setClinicLinks] = useState({});
 
   const toggleDropdown = (menu) =>
     setOpenDropdown(openDropdown === menu ? null : menu);
@@ -42,13 +44,23 @@ const Navbar = () => {
     "Low Sperm Count": "low-sperm-count",
   };
 
-  const clinicLinks = {
-    Nagpur: "nagpur",
-    Pune: "pune",
-    Kolhapur: "kolhapur",
-    Nashik: "nashik",
-  };
+useEffect(() => {
+    const fetchCityData = async () => {
+      const response = await getAllCities();
 
+      if (response?.success && Array.isArray(response?.data)) {
+        
+        const formattedLinks = response.data.reduce((acc, city) => {
+          acc[city.name] = city.name.toLowerCase(); 
+          return acc;
+        }, {});
+
+        setClinicLinks(formattedLinks);
+      }
+    };
+
+    fetchCityData();
+  }, []);
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-sm">
       <div className="flex items-center justify-between px-6 py-4">

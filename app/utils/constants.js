@@ -5,8 +5,16 @@ export class Constants {
          RESEND_OTP: `${(this.API_BASE_URL)}/auth/resend-otp`,
          VERIFY_OTP: `${(this.API_BASE_URL)}/auth/verify-otp`,
          REFRESH_ACCESS_TOKEN: `${(this.API_BASE_URL)}/auth/refresh-access-token`,
-         CLINIC_SEND_OTP: "/clinic/send-otp",
-         CLINIC_VERIFY_OTP: "/clinic/verify-otp",
-         SUBMIT_CLINIC_FORM: "/clinic/submit-form"
+        
+         CLINIC_SEND_OTP: `${(this.API_BASE_URL)}/clinic/send-otp`,
+         CLINIC_VERIFY_OTP: `${(this.API_BASE_URL)}/clinic/verify-otp`,
+         SUBMIT_CLINIC_FORM: `${(this.API_BASE_URL)}/clinic/submit-form`,
+         GET_CLINICS: `${(this.API_BASE_URL)}/public/clinics`,
+
+         GET_CONCERNS: `${(this.API_BASE_URL)}/assessment/concerns`,
+         GET_QUESTIONS: `${(this.API_BASE_URL)}/assessment/questions`,
+         SUBMIT_ASSESSMENT: `${(this.API_BASE_URL)}/assessment/submit`,
+         
+         GET_CLINICS_city: `${(this.API_BASE_URL)}/cities`,
     }
 }
