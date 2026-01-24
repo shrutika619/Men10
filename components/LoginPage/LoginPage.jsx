@@ -5,13 +5,19 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendLoginOtp, verifyLoginOtp } from "@/app/services/auth.service";
 
+// ✅ NEW IMPORTS
+import { useDispatch } from "react-redux";
+import { loginSuccess } from "@/redux/slices/authSlice";
+
 const OTPLogin = () => {
   const router = useRouter();
 
+  // ✅ INIT DISPATCH
+  const dispatch = useDispatch();
+
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(Array(6).fill(""));
-  const [step, setStep] = useState("send"); 
-  // send | verify | success | profile
+  const [step, setStep] = useState("send");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [gender, setGender] = useState("male");
@@ -30,6 +36,7 @@ const OTPLogin = () => {
       const res = await sendLoginOtp(phone);
       setMessage(res.message);
       setStep("verify");
+      toast.success("OTP Sent!");
     } catch (err) {
       setMessage(err.response?.data?.message || "Failed to send OTP");
     } finally {
@@ -46,34 +53,58 @@ const OTPLogin = () => {
     }
 
     setLoading(true);
+
     try {
       const res = await verifyLoginOtp(phone, finalOtp);
-      const { accessToken, refreshToken } = res.data;
 
-      // 🔒 TOKEN LOGIC (UNCHANGED)
-      await fetch("/api/set-tokens", {
+      const payload = res.data?.data || res.data || {};
+      const { accessToken, refreshToken, user } = payload;
+
+      if (!accessToken) {
+        if (payload.status === "pending") {
+          throw new Error("Your account is pending approval.");
+        }
+        throw new Error("Login failed: Access Token missing.");
+      }
+
+      // 1️⃣ Set Session Cookies (Server-side auth)
+      await fetch("/api/set-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, refreshToken }),
+        body: JSON.stringify({
+          accessToken,
+          refreshToken,
+          role: "patient",
+        }),
       });
+      console.log(accessToken)
+      // 2️⃣ ✅ UPDATE REDUX AUTH STATE (THIS WAS MISSING)
+      dispatch(
+        loginSuccess({
+          token: accessToken,
+          role: "patient",
+          user: user || null,
+        })
+      );
 
-      toast.success(res.message);
+      // 3️⃣ UI Feedback
+      toast.success("Login Successful");
       setStep("success");
+
     } catch (err) {
-      setMessage(err.response?.data?.message || "Invalid OTP");
+      console.error("Login Error:", err);
+      setMessage(err.response?.data?.message || err.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= OTP INPUT ================= */
+  /* ================= OTP INPUT HELPER ================= */
   const handleOtpChange = (value, index) => {
     if (!/^\d?$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
     if (value && index < 5) {
       document.getElementById(`otp-${index + 1}`)?.focus();
     }
@@ -83,36 +114,31 @@ const OTPLogin = () => {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white w-80 p-6 rounded-xl shadow-lg text-center">
 
-        {/* ================= SEND OTP ================= */}
+        {/* SEND OTP */}
         {step === "send" && (
           <>
             <h2 className="text-lg font-semibold mb-4">Login</h2>
-
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Enter Mobile Number"
-              className="border rounded w-full p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border rounded w-full p-2 mb-4"
+              maxLength={10}
             />
-
             <button
               onClick={sendOtp}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white w-full py-2 rounded"
+              className="bg-blue-600 text-white w-full py-2 rounded"
             >
               {loading ? "Sending..." : "Send OTP"}
             </button>
           </>
         )}
 
-        {/* ================= VERIFY OTP ================= */}
+        {/* VERIFY OTP */}
         {step === "verify" && (
           <>
             <h2 className="text-lg font-semibold mb-2">Login</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Enter OTP received on xxxxxx{phone.slice(-4)}
-            </p>
-
             <div className="flex justify-between mb-4">
               {otp.map((digit, i) => (
                 <input
@@ -121,7 +147,7 @@ const OTPLogin = () => {
                   value={digit}
                   maxLength={1}
                   onChange={(e) => handleOtpChange(e.target.value, i)}
-                  className="w-10 h-10 border text-center rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-10 h-10 border text-center rounded"
                 />
               ))}
             </div>
@@ -129,105 +155,37 @@ const OTPLogin = () => {
             <button
               onClick={verifyOtp}
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white w-full py-2 rounded mb-2"
+              className="bg-blue-600 text-white w-full py-2 rounded mb-2"
             >
               {loading ? "Verifying..." : "Submit"}
-            </button>
-
-            <button
-              onClick={sendOtp}
-              className="border border-blue-600 text-blue-600 w-full py-2 rounded hover:bg-blue-50 transition"
-            >
-              Resend OTP
             </button>
           </>
         )}
 
-        {/* ================= SUCCESS ================= */}
+        {/* SUCCESS */}
         {step === "success" && (
           <>
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 flex items-center justify-center rounded-full border-2 border-green-500 text-green-600 text-xl">
-                ✓
-              </div>
-            </div>
-
-            <p className="mb-4 font-medium">Register Successfully</p>
+            <p className="mb-4 font-medium">Login Successful</p>
 
             <button
               onClick={() => setStep("profile")}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white w-full py-2 rounded mb-2"
+              className="bg-blue-600 text-white w-full py-2 rounded mb-2"
             >
               Set Profile
             </button>
 
             <button
-              onClick={() => router.push("/")}
-              className="border border-blue-600 text-blue-600 w-full py-2 rounded hover:bg-blue-50 transition"
+              onClick={() => (window.location.href = "/")}
+              className="border border-blue-600 text-blue-600 w-full py-2 rounded"
             >
-              Skip
+              Skip & Go Home
             </button>
           </>
         )}
 
-        {/* ================= PROFILE ================= */}
-        {step === "profile" && (
-          <>
-            <div className="flex mb-4 rounded overflow-hidden border">
-              <button
-                onClick={() => setGender("male")}
-                className={`flex-1 py-2 text-sm font-medium ${
-                  gender === "male"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-600"
-                }`}
-              >
-                Male
-              </button>
-
-              <button
-                onClick={() => setGender("female")}
-                className={`flex-1 py-2 text-sm font-medium ${
-                  gender === "female"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-600"
-                }`}
-              >
-                Female
-              </button>
-            </div>
-
-            <input
-              placeholder="Name"
-              className="border p-2 rounded w-full mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              placeholder="Enter Age"
-              className="border p-2 rounded w-full mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              placeholder="Mail"
-              className="border p-2 rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            <button
-              onClick={() => router.push("/")}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white w-full py-2 rounded"
-            >
-              Save
-            </button>
-          </>
-        )}
-
-        {/* ================= MESSAGE ================= */}
+        {/* MESSAGE */}
         {message && (
-          <p
-            className={`text-sm mt-3 ${
-              step === "verify" ? "text-green-600" : "text-red-500"
-            }`}
-          >
-            {message}
-          </p>
+          <p className="text-sm mt-3 text-red-500">{message}</p>
         )}
       </div>
     </div>

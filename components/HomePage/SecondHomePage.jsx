@@ -1,11 +1,14 @@
-// ==========================================
-// FILE 1: components/SecondHomePage.jsx
-// ==========================================
-
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; 
 import { toast } from "sonner";
-import { sendLoginOtp, verifyLoginOtp } from "@/app/services/auth.service";
+import { sendLoginOtp, verifyLoginOtp } from "@/app/services/auth.service"; 
+import { getConcerns, getQuestions, submitAssessment, getMyAssessment } from "@/app/services/assesment.service";
+
+// ✅ REDUX IMPORTS
+import { useSelector, useDispatch } from "react-redux";
+import { selectIsAuthenticated, loginSuccess } from "@/redux/slices/authSlice";
+import { useAssessment } from "@/app/hooks/useAssessment"; 
 
 // =================== Login Modal Component ===================
 const LoginModal = ({ onClose, onLoginSuccess }) => {
@@ -14,6 +17,8 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
   const [step, setStep] = useState("send");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  
+  const dispatch = useDispatch(); 
 
   const isValidPhone = (num) => /^[6-9]\d{9}$/.test(num);
 
@@ -22,7 +27,6 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
       setMessage("Enter a valid 10-digit mobile number");
       return;
     }
-
     setLoading(true);
     try {
       const res = await sendLoginOtp(phone);
@@ -42,23 +46,41 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
       setMessage("Enter a valid 6-digit OTP");
       return;
     }
-
+    if (loading) return; 
+    
     setLoading(true);
+    setMessage(""); 
+
     try {
       const res = await verifyLoginOtp(phone, otp);
-      const { accessToken, refreshToken } = res.data;
+      const data = res.data?.data || res.data || res;
+      
+      if (!data.accessToken) {
+         throw new Error("Invalid response: Access Token missing");
+      }
 
-      await fetch("/api/set-tokens", {
+      await fetch("/api/set-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, refreshToken }),
+        body: JSON.stringify({ 
+            accessToken: data.accessToken, 
+            refreshToken: data.refreshToken,
+            role: "patient" 
+        }),
       });
 
+      dispatch(loginSuccess({
+        token: data.accessToken,
+        role: "patient",
+        user: data.user
+      }));
+
       toast.success("Login successful!");
-      onLoginSuccess();
+      onLoginSuccess(data.accessToken);
+
     } catch (err) {
-      setMessage(err.response?.data?.message || "Invalid or expired OTP");
-      toast.error("Invalid OTP");
+      console.error("OTP Verification Failed:", err);
+      setMessage(err.response?.data?.message || err.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -66,79 +88,24 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 max-w-md mx-4 shadow-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-2xl font-bold text-gray-800">
-            Login Required 🔒
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-          >
-            ×
-          </button>
-        </div>
+      <div className="bg-white rounded-xl p-8 max-w-md mx-4 shadow-2xl relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl">×</button>
+        <h3 className="text-2xl font-bold text-gray-800 mb-4">Login Required 🔒</h3>
+        <p className="text-gray-600 mb-6">Please login to calculate and view your assessment results.</p>
 
-        <p className="text-gray-600 mb-6">
-          Please login to view your assessment results. Your data is completely
-          confidential and secure.
-        </p>
-
-        {step === "send" && (
+        {step === "send" ? (
           <>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter Mobile Number"
-              className="border-2 border-gray-300 p-3 w-full mb-3 rounded-lg focus:border-blue-500 outline-none"
-              maxLength={10}
-            />
-            <button
-              onClick={sendOtp}
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 w-full rounded-lg font-semibold transition disabled:opacity-50"
-            >
-              {loading ? "Sending..." : "Send OTP"}
-            </button>
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter Mobile Number" className="border-2 border-gray-300 p-3 w-full mb-3 rounded-lg" maxLength={10} />
+            <button onClick={sendOtp} disabled={loading} className="bg-blue-600 text-white px-4 py-3 w-full rounded-lg font-semibold">{loading ? "Sending..." : "Send OTP"}</button>
+          </>
+        ) : (
+          <>
+            <input type="text" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter 6-digit OTP" className="border-2 border-gray-300 p-3 w-full mb-3 rounded-lg" maxLength={6} />
+            <button onClick={verifyOtp} disabled={loading} className="bg-green-600 text-white px-4 py-3 w-full rounded-lg font-semibold">{loading ? "Verifying..." : "Verify OTP"}</button>
+            <p onClick={() => setStep("send")} className="mt-3 text-blue-600 cursor-pointer text-center text-sm">Resend OTP</p>
           </>
         )}
-
-        {step === "verify" && (
-          <>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              placeholder="Enter 6-digit OTP"
-              className="border-2 border-gray-300 p-3 w-full mb-3 rounded-lg focus:border-blue-500 outline-none"
-              maxLength={6}
-            />
-            <button
-              onClick={verifyOtp}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 w-full rounded-lg font-semibold transition disabled:opacity-50"
-            >
-              {loading ? "Verifying..." : "Verify OTP"}
-            </button>
-            <p
-              className="mt-3 text-blue-600 cursor-pointer text-sm text-center hover:underline"
-              onClick={() => {
-                setStep("send");
-                setOtp("");
-                setMessage("");
-              }}
-            >
-              Resend OTP
-            </p>
-          </>
-        )}
-
-        {message && (
-          <p className="mt-3 text-center text-sm text-gray-700 bg-gray-100 p-2 rounded">
-            {message}
-          </p>
-        )}
+        {message && <p className="mt-3 text-center text-sm text-gray-700 bg-gray-100 p-2 rounded">{message}</p>}
       </div>
     </div>
   );
@@ -146,270 +113,251 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
 
 // =================== Assessment Component ===================
 const Assessment = () => {
-  const [gender, setGender] = useState(null);
-  const [selectedConditions, setSelectedConditions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState([]);
-  const [showQuestions, setShowQuestions] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter(); 
+  
+  // ✅ REDUX SOURCE OF TRUTH
+  const isLoggedIn = useSelector(selectIsAuthenticated); 
+
+  const { 
+    gender, selectedConditions, answers, 
+    results, showResults, showQuestions,
+    setGender, toggleCondition, setAnswer, 
+    setShowQuestions, setResults, 
+    hydrateFromBackend, resetAssessment // ✅ Get reset function
+  } = useAssessment();
+
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [availableConcerns, setAvailableConcerns] = useState([]);
+  const [questionsDb, setQuestionsDb] = useState({}); 
+  const [loading, setLoading] = useState(false);
 
-  // Check if user is logged in on component mount
+  // ✅ MAIN STATE LOGIC (Handles Login & Logout transitions)
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch("/api/check-auth", {
-        method: "GET",
-        credentials: "include",
-      });
-      
-      if (response.ok) {
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
+    const handleAuthStateChange = async () => {
+      // 🛑 CASE 1: USER LOGGED OUT
+      if (!isLoggedIn) {
+        resetAssessment(); // Strictly unselect everything and show "Start" screen
+        return;
       }
-    } catch (error) {
-      setIsLoggedIn(false);
+
+      // ✅ CASE 2: USER LOGGED IN
+      if (isLoggedIn) {
+        try {
+          // Attempt to fetch existing assessment from backend
+          const res = await getMyAssessment(); 
+          
+          if (res.success && res.data) {
+             // A. User has past data -> Show it
+             const { gender, selectedConcerns, scores } = res.data;
+
+             const formattedResults = Object.keys(scores || {}).map(condition => {
+                const score = scores[condition];
+                let severity = "Low";
+                let color = "bg-green-100 text-green-800";
+                if (score > 6) { severity = "High"; color = "bg-red-100 text-red-800"; }
+                else if (score > 3) { severity = "Medium"; color = "bg-yellow-100 text-yellow-800"; }
+                return { condition, score, severity, color };
+             });
+
+             hydrateFromBackend({
+                gender,
+                selectedConcerns,
+                uiResults: formattedResults
+             });
+          } else {
+             // B. No data on Backend. 
+             // CHECK: Did the user just fill out the form locally?
+             const hasLocalAnswers = answers && Object.keys(answers).length > 0;
+             
+             if (!hasLocalAnswers) {
+                // If they have no local progress AND no backend data -> Clean Slate
+                resetAssessment();
+             }
+             // If they DO have local answers, do nothing (let them proceed to submit)
+          }
+        } catch (error) {
+          console.error("Error syncing state:", error);
+        }
+      }
+    };
+
+    handleAuthStateChange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]); // Only run when login status flips
+
+
+  // Fetch Concerns when gender changes
+  useEffect(() => {
+    const fetchConcerns = async () => {
+        if(gender) {
+            const result = await getConcerns(gender);
+            if (result.success) setAvailableConcerns(result.data.concerns);
+        }
+    };
+    fetchConcerns();
+  }, [gender]);
+
+  const handleConditionToggle = (cond) => toggleCondition(cond);
+  const handleAnswer = (condition, index, value) => setAnswer(condition, index, value);
+
+  const handleGenderSelect = async (selectedGender) => {
+    setLoading(true);
+    const result = await getConcerns(selectedGender);
+    if (result.success) {
+      setAvailableConcerns(result.data.concerns);
+      setGender(selectedGender); 
+    } else {
+      toast.error(result.message);
     }
+    setLoading(false);
   };
 
-  const questionsDb = {
-    male: {
-      "Sexual Dysfunction": [
-        "Do you have a persistent lack of interest in sexual activity?",
-        "Is it difficult to get aroused or excited during sexual encounters?",
-        "Do you have trouble reaching orgasm, or is it absent?",
-        "Do you feel anxiety or fear related to sexual performance?",
-        "Has this caused distress in your life or relationship?",
-      ],
-      "Erectile Dysfunction": [
-        "Do you find it difficult to get an erection?",
-        "Do you struggle to maintain an erection firm enough for intercourse?",
-        "Do you experience a decrease in the rigidity of your erections?",
-        "Are you less confident in your ability to get and keep an erection?",
-        "Have you noticed a reduction in morning erections?",
-      ],
-      "Low Sex Desire": [
-        "Is your desire for sex lower than you feel it should be?",
-        "Do you rarely or never initiate sexual activity?",
-        "Are you often not receptive to your partner's advances?",
-        "Do you make excuses to avoid sexual intimacy?",
-        "Does your low desire cause you personal distress?",
-      ],
-    },
-    female: {
-      "Sexual Dysfunction": [
-        "Do you have a persistent lack of interest in sexual activity?",
-        "Is it difficult to get aroused, even with adequate stimulation?",
-        "Has your interest in sex or pleasure caused you distress?",
-        "Do you feel anxiety or fear associated with sexual activity?",
-        "Are you unsatisfied with the intimacy in your sexual life?",
-      ],
-      "Low Lubrication": [
-        "Do you often feel a lack of vaginal lubrication during sexual activity?",
-        "Do you experience discomfort or friction due to dryness?",
-        "Do you find yourself needing to use artificial lubricants frequently?",
-        "Does lack of lubrication make sex less pleasurable for you?",
-        "Do you feel anxious about intimacy because you worry about dryness?",
-      ],
-    },
-  };
-
-  const handleConditionToggle = (cond) => {
-    setSelectedConditions([cond]);
-    setAnswers({});
-    setShowResults(false);
-    setShowQuestions(true);
-  };
-
-  const handleAnswer = (condition, index, value) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [condition]: { ...prev[condition], [index]: value },
-    }));
-  };
-
-  const calculateResults = () => {
-    // Check if user is logged in
-    if (!isLoggedIn) {
-      setShowLoginModal(true);
+  const handleFetchQuestions = async () => {
+    if (selectedConditions.length === 0) {
+      alert("Please select at least one concern"); 
       return;
     }
-
-    let newResults = [];
-
-    selectedConditions.forEach((condition) => {
-      const totalScore = Object.values(answers[condition] || {}).reduce(
-        (a, b) => a + b,
-        0
-      );
-      let severity = "Low";
-      let color = "bg-green-100 text-green-800";
-      if (totalScore > 6) {
-        severity = "High";
-        color = "bg-red-100 text-red-800";
-      } else if (totalScore > 3) {
-        severity = "Medium";
-        color = "bg-yellow-100 text-yellow-800";
-      }
-      newResults.push({ condition, score: totalScore, severity, color });
-    });
-
-    setResults(newResults);
-    setShowResults(true);
+    setLoading(true);
+    const result = await getQuestions(gender, selectedConditions);
+    if (result.success) {
+      setQuestionsDb(result.data); 
+      setShowQuestions(true); 
+    }
+    setLoading(false);
+  };
+  
+  const handleCalculateClick = async () => {
+    if (isLoggedIn) {
+      await handleSubmitAssessment(); 
+    } else {
+      setShowLoginModal(true);
+    }
   };
 
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+  const handleSubmitAssessment = async (freshToken = null) => { 
+    setLoading(true);
+  
+    const formattedAnswers = {};
+    selectedConditions.forEach(concern => {
+      const conditionAnswers = answers[concern] || {};
+      Object.keys(conditionAnswers).forEach(idx => {
+        const val = conditionAnswers[idx] === 2 ? "Yes" : "No";
+        formattedAnswers[`${concern}_${idx}`] = val;
+      });
+    }); 
+
+    const result = await submitAssessment(gender, selectedConditions, formattedAnswers, freshToken);
+
+    if (result.success) {
+        const backendScores = result.data.assessment.scores;
+        const newResults = Object.keys(backendScores).map(condition => {
+            const score = backendScores[condition];
+            let severity = "Low";
+            let color = "bg-green-100 text-green-800";
+            if (score > 6) { severity = "High"; color = "bg-red-100 text-red-800"; }
+            else if (score > 3) { severity = "Medium"; color = "bg-yellow-100 text-yellow-800"; }
+            return { condition, score, severity, color };
+        });
+        setResults(newResults); 
+    } else {
+        if (result.requireLogin) {
+            setShowLoginModal(true); 
+        } else {
+            toast.error(result.message || "Calculation failed");
+        }
+    }
+    setLoading(false);
+  };
+
+  const handleLoginSuccess = (freshAccessToken) => {
     setShowLoginModal(false);
-    // Automatically calculate results after successful login
-    calculateResults();
+    handleSubmitAssessment(freshAccessToken); 
   };
-
+  
   return (
     <div className="bg-white shadow-lg rounded-2xl p-6 md:p-10 max-w-3xl mx-auto">
-      {/* Gender Selection */}
+      
+      {/* 1. GENDER SELECTION */}
       {!gender && (
-        <div className="text-center">
-          <h2 className="text-2xl font-bold">First, what is your gender?</h2>
-          <div className="mt-6 space-y-3 max-w-xs mx-auto">
-            {["male", "female"].map((g) => (
-              <button
-                key={g}
-                onClick={() => setGender(g)}
-                className="w-full border-2 border-gray-200 p-3 rounded-lg hover:border-blue-500 transition"
-              >
-                {g.charAt(0).toUpperCase() + g.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
+         <div className="text-center">
+           <h2 className="text-2xl font-bold">First, what is your gender?</h2>
+           <div className="mt-6 space-y-3 max-w-xs mx-auto">
+             {["male", "female"].map((g) => (
+               <button key={g} onClick={() => handleGenderSelect(g)} className="w-full border-2 border-gray-200 p-3 rounded-lg hover:border-blue-500 transition">
+                 {g.charAt(0).toUpperCase() + g.slice(1)}
+               </button>
+             ))}
+           </div>
+         </div>
       )}
 
-      {/* Conditions */}
+      {/* 2. CONDITIONS SELECTION */}
       {gender && !showQuestions && (
         <div className="mt-8">
-          <h2 className="text-xl font-bold text-center">
-            What are your primary concerns?
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-            {Object.keys(questionsDb[gender]).map((cond) => (
-              <button
-                key={cond}
-                onClick={() => handleConditionToggle(cond)}
-                className={`border-2 p-4 rounded-lg text-center transition ${
-                  selectedConditions.includes(cond)
-                    ? "border-blue-600 bg-blue-50 font-semibold"
-                    : "border-gray-200 hover:border-blue-400"
-                }`}
-              >
-                {cond}
-              </button>
-            ))}
-          </div>
+           <h2 className="text-xl font-bold text-center">What are your primary concerns?</h2>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+             {availableConcerns.map((cond) => (
+               <button 
+                 key={cond} 
+                 onClick={() => handleConditionToggle(cond)} 
+                 className={`border-2 p-4 rounded-lg text-center transition 
+                    ${selectedConditions.includes(cond) ? "border-blue-600 bg-blue-50 font-semibold" : "border-gray-200 hover:border-blue-400"}
+                 `}
+               >
+                 {cond}
+               </button>
+             ))}
+           </div>
+           
+           {!showResults && (
+             <div className="text-center mt-8">
+               <button onClick={handleFetchQuestions} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">
+                 Next →
+               </button>
+             </div>
+           )}
         </div>
       )}
 
-      {/* Questions */}
+      {/* 3. QUESTIONS VIEW */}
       {showQuestions && selectedConditions.length > 0 && (
-        <div className="mt-10 space-y-6">
-          {selectedConditions.map((cond) => (
-            <div key={cond}>
-              <h3 className="text-lg font-bold text-blue-700">{cond}</h3>
-              {questionsDb[gender][cond].map((q, i) => (
-                <div
-                  key={i}
-                  className="mt-3 p-4 border rounded-lg bg-gray-50 space-y-2"
-                >
-                  <p className="font-medium">{q}</p>
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => handleAnswer(cond, i, 2)}
-                      className={`flex-1 border-2 p-2 rounded-lg transition ${
-                        answers[cond]?.[i] === 2
-                          ? "bg-blue-100 border-blue-600"
-                          : "border-gray-200 hover:border-blue-400"
-                      }`}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      onClick={() => handleAnswer(cond, i, 0)}
-                      className={`flex-1 border-2 p-2 rounded-lg transition ${
-                        answers[cond]?.[i] === 0
-                          ? "bg-blue-100 border-blue-600"
-                          : "border-gray-200 hover:border-blue-400"
-                      }`}
-                    >
-                      No
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-
-          {/* Buttons row */}
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={() => setShowQuestions(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg font-medium transition"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={calculateResults}
-              className="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition"
-            >
-              Calculate My Score
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Login Modal */}
-      {showLoginModal && (
-        <LoginModal
-          onClose={() => setShowLoginModal(false)}
-          onLoginSuccess={handleLoginSuccess}
+        <QuestionsView 
+           selectedConditions={selectedConditions} 
+           questionsDb={questionsDb} 
+           answers={answers}
+           onAnswer={handleAnswer}
+           onBack={() => setShowQuestions(false)} 
+           onSubmit={handleCalculateClick}
+           loading={loading}
+           onRefreshNeeded={handleFetchQuestions}
         />
       )}
 
-      {/* Results */}
+      {showLoginModal && (
+        <LoginModal onClose={() => setShowLoginModal(false)} onLoginSuccess={handleLoginSuccess} />
+      )}
+
+      {/* 4. RESULTS VIEW */}
       {showResults && (
         <div className="mt-10 space-y-6">
-          <h2 className="text-2xl font-bold text-center">
-            Your Assessment Results
-          </h2>
+          <h2 className="text-2xl font-bold text-center">Your Assessment Results</h2>
           {results.map((r) => (
-            <div
-              key={r.condition}
-              className="border p-5 rounded-xl bg-white shadow text-left"
-            >
+            <div key={r.condition} className="border p-5 rounded-xl bg-white shadow text-left">
               <div className="flex justify-between">
                 <h4 className="font-bold text-gray-800">{r.condition}</h4>
                 <span className="text-blue-600 font-bold">{r.score}/10</span>
               </div>
               <p className="mt-2">
-                Concern Level:{" "}
-                <span className={`${r.color} px-2 py-1 rounded-full text-sm`}>
-                  {r.severity}
-                </span>
+                Concern Level: <span className={`${r.color} px-2 py-1 rounded-full text-sm`}>{r.severity}</span>
               </p>
             </div>
           ))}
-
-          {/* Back button from results */}
           <div className="text-center mt-6">
-            <button
-              onClick={() => setShowResults(false)}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-5 rounded-lg font-medium transition"
+            <button 
+                onClick={() => setShowQuestions(true)} 
+                className="bg-gray-200 text-gray-800 py-2 px-5 rounded-lg font-medium"
             >
-              ← Back to Questions
+                ← Back to Questions
             </button>
           </div>
         </div>
@@ -418,27 +366,56 @@ const Assessment = () => {
   );
 };
 
-// =================== SecondHomePage ===================
+// Helper for Questions (Refresh Safe)
+const QuestionsView = ({ selectedConditions, questionsDb, answers, onAnswer, onBack, onSubmit, loading, onRefreshNeeded }) => {
+    useEffect(() => {
+        const hasQuestions = selectedConditions.every(c => questionsDb[c]);
+        if (!hasQuestions && selectedConditions.length > 0) {
+            onRefreshNeeded();
+        }
+    }, []);
+
+    return (
+        <div className="mt-10 space-y-6">
+          {selectedConditions.map((cond) => (
+            <div key={cond}>
+              <h3 className="text-lg font-bold text-blue-700">{cond}</h3>
+              {questionsDb[cond]?.map((q, i) => (
+                <div key={i} className="mt-3 p-4 border rounded-lg bg-gray-50 space-y-2">
+                  <p className="font-medium">{q}</p>
+                  <div className="flex space-x-4">
+                    <button onClick={() => onAnswer(cond, i, 2)} className={`flex-1 border-2 p-2 rounded-lg transition ${answers[cond]?.[i] === 2 ? "bg-blue-100 border-blue-600" : "border-gray-200 hover:border-blue-400"}`}>Yes</button>
+                    <button onClick={() => onAnswer(cond, i, 0)} className={`flex-1 border-2 p-2 rounded-lg transition ${answers[cond]?.[i] === 0 ? "bg-blue-100 border-blue-600" : "border-gray-200 hover:border-blue-400"}`}>No</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+
+          <div className="flex justify-between mt-6">
+            <button onClick={onBack} className="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium">← Back</button>
+            <button
+              onClick={onSubmit}
+              disabled={loading}
+              className="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition"
+            >
+              {loading ? "Calculating..." : "Calculate My Score"}
+            </button>
+          </div>
+        </div>
+    );
+}
+
 const SecondHomePage = () => {
-  const [start, setStart] = useState(false);
+  const { isStarted, startAssessment } = useAssessment();
 
   return (
     <div className="flex items-center justify-center py-14 w-full bg-gray-50">
-      {!start ? (
+      {!isStarted ? (
         <div className="bg-white shadow-lg rounded-xl p-6 max-w-md text-center">
-          <h2 className="text-xl font-semibold mb-4">
-            Confidential Wellness Assessment 🔒
-          </h2>
-          <p className="text-sm text-gray-600 mb-6">
-            This 2-minute assessment will help you understand your sexual health
-            better. Your responses are 100% private.
-          </p>
-          <button
-            onClick={() => setStart(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-5 rounded-md transition duration-200"
-          >
-            Let's Begin
-          </button>
+          <h2 className="text-xl font-semibold mb-4">Confidential Wellness Assessment 🔒</h2>
+          <p className="text-sm text-gray-600 mb-6">This 2-minute assessment will help you understand your sexual health better. Your responses are 100% private.</p>
+          <button onClick={startAssessment} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-5 rounded-md transition duration-200">Let's Begin</button>
         </div>
       ) : (
         <Assessment />
@@ -448,23 +425,3 @@ const SecondHomePage = () => {
 };
 
 export default SecondHomePage;
-
-
-// ==========================================
-// FILE 2: app/api/check-auth/route.js
-// ==========================================
-
-export async function GET(request) {
-  try {
-    const cookies = request.cookies;
-    const accessToken = cookies.get('accessToken');
-    
-    if (accessToken && accessToken.value) {
-      return Response.json({ authenticated: true }, { status: 200 });
-    }
-    
-    return Response.json({ authenticated: false }, { status: 401 });
-  } catch (error) {
-    return Response.json({ authenticated: false }, { status: 401 });
-  }
-}

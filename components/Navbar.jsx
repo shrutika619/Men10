@@ -1,11 +1,23 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; 
 import { getAllCities } from "@/app/services/clinic.service";
 
+// Redux Imports
+import { useSelector, useDispatch } from "react-redux";
+import { selectUserRole, logoutSuccess } from "@/redux/slices/authSlice";
+
 const Navbar = () => {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  
+  // Get User Role
+  const role = useSelector(selectUserRole); 
+
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const conditionsDropdownRef = useRef(null);
   const clinicDropdownRef = useRef(null);
   const [clinicLinks, setClinicLinks] = useState({});
@@ -18,7 +30,7 @@ const Navbar = () => {
     setMobileMenuOpen(false);
   };
 
-  // ✅ Click outside to close dropdown
+  // Click outside listener
   useEffect(() => {
     const handleClickOutside = (event) => {
       const clickedInsideConditions = conditionsDropdownRef.current?.contains(event.target);
@@ -44,23 +56,45 @@ const Navbar = () => {
     "Low Sperm Count": "low-sperm-count",
   };
 
-useEffect(() => {
+  // Fetch Cities
+  useEffect(() => {
     const fetchCityData = async () => {
-      const response = await getAllCities();
-
-      if (response?.success && Array.isArray(response?.data)) {
-        
-        const formattedLinks = response.data.reduce((acc, city) => {
-          acc[city.name] = city.name.toLowerCase(); 
-          return acc;
-        }, {});
-
-        setClinicLinks(formattedLinks);
+      try {
+        const response = await getAllCities();
+        if (response?.success && Array.isArray(response?.data)) {
+          const formattedLinks = response.data.reduce((acc, city) => {
+            acc[city.name] = city.name.toLowerCase(); 
+            return acc;
+          }, {});
+          setClinicLinks(formattedLinks);
+        }
+      } catch (error) {
+        console.error("Failed to fetch cities", error);
       }
     };
-
     fetchCityData();
   }, []);
+
+  // ✅ FIXED LOGOUT HANDLER
+  const handleLogout = async () => {
+    try {
+      // 1. Call Backend to delete HttpOnly cookies (CRITICAL STEP)
+      await fetch("/api/logout", { method: "POST" });
+
+      // 2. Clear Redux State
+      dispatch(logoutSuccess());
+      
+      closeDropdown();
+
+      // 3. Redirect to Home (and force refresh to ensure state is clean)
+      router.push("/"); 
+      router.refresh(); 
+
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-sm">
       <div className="flex items-center justify-between px-6 py-4">
@@ -80,6 +114,9 @@ useEffect(() => {
               Home
             </Link>
           </li>
+          
+          {/* REMOVED: Admin & Clinic Portal Links */}
+
           <li>
             <Link href="/about" onClick={closeDropdown} className="hover:text-blue-600">
               About Us
@@ -139,11 +176,21 @@ useEffect(() => {
 
         {/* Right Section Desktop */}
         <div className="hidden md:flex items-center space-x-4">
-          <Link href="/login" onClick={closeDropdown} className="hover:text-blue-600">
-            Login
-          </Link>
+          
+          {/* Login/Logout Logic */}
+          {role ? (
+            <button 
+              onClick={handleLogout} 
+              className="hover:text-red-600 font-medium transition"
+            >
+              Logout
+            </button>
+          ) : (
+            <Link href="/login" onClick={closeDropdown} className="hover:text-blue-600">
+              Login
+            </Link>
+          )}
 
-          {/* ✅ START NOW → FREE CONSULTATION */}
           <Link
             href="/free-consultation"
             onClick={closeDropdown}
@@ -169,6 +216,9 @@ useEffect(() => {
             <li>
               <Link href="/" onClick={closeDropdown}>Home</Link>
             </li>
+            
+            {/* REMOVED: Admin & Clinic Portal Mobile Links */}
+
             <li>
               <Link href="/about" onClick={closeDropdown}>About Us</Link>
             </li>
@@ -220,10 +270,15 @@ useEffect(() => {
             </li>
 
             <li>
-              <Link href="/login" onClick={closeDropdown}>Login</Link>
+              {role ? (
+                 <button onClick={handleLogout} className="text-red-600 w-full text-left">
+                   Logout
+                 </button>
+              ) : (
+                <Link href="/login" onClick={closeDropdown}>Login</Link>
+              )}
             </li>
 
-            {/* ✅ MOBILE START NOW */}
             <li>
               <Link
                 href="/free-consultation"
