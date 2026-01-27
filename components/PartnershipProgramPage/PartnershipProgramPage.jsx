@@ -108,7 +108,7 @@ export default function ClinicAuth() {
           err.response?.data?.message || "Invalid or expired OTP"
       );
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 

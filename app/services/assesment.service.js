@@ -88,7 +88,7 @@ export const submitAssessment = async (gender, selectedConcerns, formattedAnswer
 export const getMyAssessment = async () => {
   try {
     // Ensure this endpoint exists in your Constants or use the raw string
-    const endpoint = Constants.urlEndPoints.GET_MY_ASSESSMENT || "/assessment/my-assessment";
+    const endpoint = Constants.urlEndPoints.GET_MY_ASSESSMENT;
 
     // No token logic needed here; axiosInstance grabs it from Redux storage
     const response = await axiosInstance.get(endpoint);
