@@ -19,7 +19,8 @@ export const sendLoginOtp = async (mobileNo) => {
 export const verifyLoginOtp = async (mobileNo, otp) => {
     const response = await axios.post(
         Constants.urlEndPoints.VERIFY_OTP,
-        { mobileNo, otp }
+        { mobileNo, otp },
+        { withCredentials: true } // ✅ CRITICAL FIX: Allows browser to save the cookie
     );
     return response.data;
 };
