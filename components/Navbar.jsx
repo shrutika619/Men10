@@ -69,6 +69,7 @@ const Navbar = () => {
         if (response?.success && Array.isArray(response?.data)) {
           const formattedLinks = response.data.reduce((acc, city) => {
             acc[city.name] = city.name.toLowerCase();
+            console.log(city._id ,"and", city.name)
             return acc;
           }, {});
           setClinicLinks(formattedLinks);

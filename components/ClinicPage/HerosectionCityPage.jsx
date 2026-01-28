@@ -1,53 +1,68 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, Phone, Navigation, Star } from "lucide-react";
+import { Search, MapPin, Phone, Navigation, Star, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getAllClinics } from "@/app/services/clinic.service";
+import { getAllClinics, getAllCities } from "@/app/services/clinic.service";
 
 export default function HerosectionCity({ cityName }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  // Helper to match slugs back to city names (e.g., "new-delhi" matches "New Delhi")
-  const normalizeString = (str) => str?.toLowerCase().replace(/\s+/g, '-');
+  // Helper to match slugs back to city names
+  const normalizeString = (str) => str?.toLowerCase().replace(/\s+/g, '-').trim();
 
- useEffect(() => {
-    const loadClinics = async () => {
+  useEffect(() => {
+    const initializeData = async () => {
       setLoading(true);
-      const response = await getAllClinics();
+      setError("");
 
-      // FIX: Check for response.data.data (the nested array)
-      // The first '.data' is the API body, the second '.data' is your list of clinics
-      if (response?.data?.data) {
+      try {
+        // 1. Fetch all cities to find the one matching the cityName slug
+        const cityResponse = await getAllCities();
         
-        // FIX: Filter 'response.data.data' instead of 'response.data'
-        const filteredClinics = response.data.data.filter(clinic => 
-          clinic.status === "approved" && 
-          normalizeString(clinic.city) === normalizeString(cityName)
+        // Adjust based on your API structure: cityResponse.data.cities or cityResponse.data
+        const citiesList = cityResponse?.data || []; 
+        const targetCity = citiesList.find(
+          (c) => normalizeString(c.name) === normalizeString(cityName)
         );
-        
-        setClinics(filteredClinics);
-      } else {
-         // Optional: Handle case where data is missing
-         console.log("No clinics found or API structure changed", response);
+
+        if (!targetCity) {
+          setError("City not found. Please select a different location.");
+          setLoading(false);
+          return;
+        }
+
+        // 2. Fetch clinics ONLY for that specific city ID
+        const clinicResult = await getAllClinics(targetCity._id);
+
+        if (clinicResult.success) {
+          setClinics(clinicResult.clinics);
+        } else {
+          setError(clinicResult.message);
+        }
+      } catch (err) {
+        console.error("Initialization error:", err);
+        setError("Something went wrong while fetching data.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    if (cityName) loadClinics();
+    if (cityName) initializeData();
   }, [cityName]);
 
-  // Client-side search within the city results
+  // Client-side search within the already filtered city results
   const filteredList = clinics.filter(
-      (clinic) =>
-        clinic.clinicName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        clinic.areaName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    (clinic) =>
+      clinic.clinicName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      clinic.areaName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleCall = (phone) => window.location.href = `tel:${phone}`;
-  const handleDetails = (id) => router.push(`/clinicseedetails?id=${id}`); // Passing ID via query or path
+  const handleCall = (phone) => (window.location.href = `tel:${phone}`);
+  const handleDetails = (id) => router.push(`/clinicseedetails?id=${id}`);
 
   return (
     <div className="min-h-screen bg-white font-sans flex flex-col items-center py-8 px-4">
@@ -75,19 +90,27 @@ export default function HerosectionCity({ cityName }) {
         </div>
       </div>
 
-      {/* Clinics List */}
+      {/* Main Content Area */}
       <div className="w-full max-w-md space-y-8">
         {loading ? (
-           <p className="text-center text-gray-500">Loading clinics...</p>
+          <div className="flex flex-col items-center py-10">
+             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mb-4"></div>
+             <p className="text-gray-500">Finding best clinics...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-center gap-3 text-red-700">
+            <AlertCircle className="w-5 h-5" />
+            <p>{error}</p>
+          </div>
         ) : filteredList.length > 0 ? (
           filteredList.map((clinic) => (
             <div
               key={clinic._id}
-              className="bg-white rounded-2xl shadow-lg border border-gray-300 overflow-hidden hover:shadow-xl transition-shadow"
+              className="bg-white rounded-2xl shadow-lg border border-gray-300 overflow-hidden hover:shadow-xl transition-all"
             >
               <div className="h-48 w-full bg-gray-200 overflow-hidden border-b border-gray-300">
                 <img
-                  src={clinic.photos?.clinicfrontPhoto || "https://via.placeholder.com/800x400"}
+                  src={clinic.photos?.clinicfrontPhoto || "https://via.placeholder.com/800x400?text=Clinic+Image"}
                   alt={clinic.clinicName}
                   className="w-full h-full object-cover"
                 />
@@ -111,10 +134,10 @@ export default function HerosectionCity({ cityName }) {
                      <span>{clinic.areaName}</span>
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => handleCall(clinic.mobileNo)} className="text-purple-600 hover:bg-purple-50 p-1 rounded-md">
+                    <button onClick={() => handleCall(clinic.mobileNo)} className="text-purple-600 hover:bg-purple-50 p-1 rounded-md transition-colors">
                         <Phone className="w-5 h-5" />
                     </button>
-                    <button onClick={() => window.open(clinic.googleMapsLink, '_blank')} className="text-purple-600 hover:bg-purple-50 p-1 rounded-md">
+                    <button onClick={() => window.open(clinic.googleMapsLink, '_blank')} className="text-purple-600 hover:bg-purple-50 p-1 rounded-md transition-colors">
                         <Navigation className="w-5 h-5" />
                     </button>
                   </div>
@@ -125,13 +148,13 @@ export default function HerosectionCity({ cityName }) {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => handleDetails(clinic._id)}
-                    className="bg-gray-100 hover:bg-gray-200 py-2.5 rounded-lg font-semibold text-sm"
+                    className="bg-gray-100 hover:bg-gray-200 py-2.5 rounded-lg font-semibold text-sm transition-colors"
                   >
                     See Details
                   </button>
                   <button
                     onClick={() => handleDetails(clinic._id)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg shadow-md text-sm font-semibold"
+                    className="bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg shadow-md text-sm font-semibold transition-colors"
                   >
                     Book Now
                   </button>
@@ -140,9 +163,10 @@ export default function HerosectionCity({ cityName }) {
             </div>
           ))
         ) : (
-          <p className="text-center text-gray-500 py-10">
-            No clinics found in {cityName?.replace(/-/g, ' ')}.
-          </p>
+          <div className="text-center py-10">
+             <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+             <p className="text-gray-500">No clinics available in this area yet.</p>
+          </div>
         )}
       </div>
     </div>
