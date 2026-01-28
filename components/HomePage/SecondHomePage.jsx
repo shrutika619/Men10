@@ -123,7 +123,7 @@ const Assessment = () => {
     results, showResults, showQuestions,
     setGender, toggleCondition, setAnswer, 
     setShowQuestions, setResults, 
-    hydrateFromBackend, resetAssessment // ✅ Get reset function
+    hydrateFromBackend, resetAssessment 
   } = useAssessment();
 
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -131,23 +131,22 @@ const Assessment = () => {
   const [questionsDb, setQuestionsDb] = useState({}); 
   const [loading, setLoading] = useState(false);
 
-  // ✅ MAIN STATE LOGIC (Handles Login & Logout transitions)
+ 
   useEffect(() => {
     const handleAuthStateChange = async () => {
       // 🛑 CASE 1: USER LOGGED OUT
       if (!isLoggedIn) {
-        resetAssessment(); // Strictly unselect everything and show "Start" screen
+        resetAssessment(); 
         return;
       }
 
       // ✅ CASE 2: USER LOGGED IN
       if (isLoggedIn) {
         try {
-          // Attempt to fetch existing assessment from backend
           const res = await getMyAssessment(); 
           
           if (res.success && res.data) {
-             // A. User has past data -> Show it
+             // User has backend data -> Load it
              const { gender, selectedConcerns, scores } = res.data;
 
              const formattedResults = Object.keys(scores || {}).map(condition => {
@@ -165,15 +164,9 @@ const Assessment = () => {
                 uiResults: formattedResults
              });
           } else {
-             // B. No data on Backend. 
-             // CHECK: Did the user just fill out the form locally?
-             const hasLocalAnswers = answers && Object.keys(answers).length > 0;
-             
-             if (!hasLocalAnswers) {
-                // If they have no local progress AND no backend data -> Clean Slate
-                resetAssessment();
-             }
-             // If they DO have local answers, do nothing (let them proceed to submit)
+             // No backend data? Reset immediately.
+             // We do NOT check for "local answers" anymore.
+             resetAssessment();
           }
         } catch (error) {
           console.error("Error syncing state:", error);
@@ -183,7 +176,7 @@ const Assessment = () => {
 
     handleAuthStateChange();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn]); // Only run when login status flips
+  }, [isLoggedIn]); 
 
 
   // Fetch Concerns when gender changes
@@ -301,7 +294,7 @@ const Assessment = () => {
                  key={cond} 
                  onClick={() => handleConditionToggle(cond)} 
                  className={`border-2 p-4 rounded-lg text-center transition 
-                    ${selectedConditions.includes(cond) ? "border-blue-600 bg-blue-50 font-semibold" : "border-gray-200 hover:border-blue-400"}
+                   ${selectedConditions.includes(cond) ? "border-blue-600 bg-blue-50 font-semibold" : "border-gray-200 hover:border-blue-400"}
                  `}
                >
                  {cond}

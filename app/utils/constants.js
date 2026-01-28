@@ -29,6 +29,6 @@ export class Constants {
     GET_CONCERNS: `${this.API_BASE_URL}/assessment/concerns`,
     GET_QUESTIONS: `${this.API_BASE_URL}/assessment/questions`,
     SUBMIT_ASSESSMENT: `${this.API_BASE_URL}/assessment/submit`,
-    GET_MY_ASSESSMENT: `${this.API_BASE_URL}/assessment//my-assessment`,
+    GET_MY_ASSESSMENT: `${this.API_BASE_URL}/assessment/my-assessment`,
   };
 }
