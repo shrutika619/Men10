@@ -101,9 +101,10 @@ export const getMyAssessment = async () => {
   } catch (error) {
     // If 401 (Not logged in / Token invalid), just return success:false.
     // The UI knows this means "no data found" and won't show an error toast.
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 404) {
         return { success: false };
     }
+  
 
     console.error("Error fetching history:", error);
     return { 
