@@ -9,7 +9,11 @@ export class Constants {
     REFRESH_ACCESS_TOKEN: `${this.API_BASE_URL}/auth/refresh-access-token`,
     LOGOUT: `${this.API_BASE_URL}/auth/logout`,
 
-    // --- ADMIN / EMPLOYEE AUTH (Added these for Redux) ---
+    //--- PATIENT PROFILE ---
+    SAVE_PATIENT_PROFILE: `${this.API_BASE_URL}/patient-profile/save`,
+    GET_PATIENT_PROFILE: `${this.API_BASE_URL}/patient-profile`,
+
+    // --- ADMIN / AUTH (Added these for Redux) ---
     ADMIN_LOGIN: `${this.API_BASE_URL}/adminlogin`,
     EMPLOYEE_LOGIN: `${this.API_BASE_URL}/employee/login`,
     SUPER_ADMIN_LOGIN: `${this.API_BASE_URL}/super-admin/login`,

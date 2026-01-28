@@ -1,26 +1,31 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { sendLoginOtp, verifyLoginOtp } from "@/app/services/auth.service";
 import { useDispatch } from "react-redux";
-import { loginSuccess } from "@/redux/slices/authSlice";
+
+// ✅ SERVICES
+import { sendLoginOtp, verifyLoginOtp } from "@/app/services/auth.service";
+// ✅ IMPORT getPatientProfile to check for existence
+import { savePatientProfile, getPatientProfile } from "@/app/services/patient.service"; 
+
+// ✅ REDUX ACTIONS
+import { loginSuccess, updateUserData } from "@/redux/slices/authSlice";
 
 const OTPLogin = () => {
   const router = useRouter();
   const dispatch = useDispatch();
 
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(Array(6).fill("")); // Updated to 6 digits
-  const [step, setStep] = useState("send"); // send, verify, success, profile
+  const [otp, setOtp] = useState(Array(6).fill("")); 
+  const [step, setStep] = useState("send"); 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   
   // Profile Form State
   const [profileData, setProfileData] = useState({
     gender: "Male",
-    name: "Tanay Karchal",
+    name: "",
     age: "",
     email: ""
   });
@@ -34,8 +39,9 @@ const OTPLogin = () => {
       return;
     }
     setLoading(true);
+
     try {
-      const res = await sendLoginOtp(phone);
+      await sendLoginOtp(phone);
       setMessage("");
       setStep("verify");
       toast.success("OTP Sent!");
@@ -56,31 +62,90 @@ const OTPLogin = () => {
     setLoading(true);
     try {
       const res = await verifyLoginOtp(phone, finalOtp);
-      const payload = res.data?.data || res.data || {};
-      const { accessToken, refreshToken, user } = payload;
+      
+      const { accessToken, refreshToken, user, isNewUser } = res.data || res; 
 
-      if (!accessToken) {
-        throw new Error("Login failed: Access Token missing.");
-      }
+      if (!accessToken) throw new Error("Login failed: Access Token missing.");
 
+      // Set session cookies
       await fetch("/api/set-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accessToken, refreshToken, role: "patient" }),
       });
 
+      // Dispatch to Redux
       dispatch(loginSuccess({
         token: accessToken,
         role: "patient",
-        user: user || null,
+        user: { ...user, mobileNo: phone },
       }));
 
       toast.success("Login Successful");
-      setStep("success");
+
+      // ✅ UPDATED LOGIC HERE
+      if (isNewUser) {
+        // Case 1: Auth service explicitly says it's a new user
+        setStep("success"); 
+      } else {
+        // Case 2: User exists in Auth, but do they have a Profile?
+        try {
+            // Attempt to fetch profile immediately
+            const profileCheck = await getPatientProfile();
+            
+            if (profileCheck.success) {
+                // Profile found -> Go Home
+                window.location.href = "/";
+            } else if (profileCheck.isNotFound) {
+                // ✅ 404 DETECTED -> Force Profile Setup
+                setStep("success");
+            } else {
+                // Other error (e.g. server error), safe fallback to Home
+                window.location.href = "/";
+            }
+        } catch (ignored) {
+            // Safety net
+            window.location.href = "/";
+        }
+      }
+
     } catch (err) {
+      console.error(err);
       setMessage(err.response?.data?.message || err.message || "Invalid OTP");
     } finally {
       setLoading(false);
+    }
+  };
+
+  /* ================= SAVE PROFILE (STEP 4) ================= */
+  const handleSaveProfile = async () => {
+    if (!profileData.name) return setMessage("Full Name is required");
+    
+    setLoading(true);
+    setMessage("");
+
+    try {
+        const payload = {
+            fullName: profileData.name,
+            email: profileData.email,
+            age: profileData.age ? parseInt(profileData.age) : null,
+            gender: profileData.gender.toLowerCase()
+        };
+
+        const res = await savePatientProfile(payload);
+
+        if (res.success) {
+            dispatch(updateUserData(payload));
+            toast.success("Profile Saved!");
+            window.location.href = "/";
+        } else {
+            setMessage(res.message || "Failed to save profile");
+        }
+    } catch (err) {
+        console.error(err);
+        setMessage("Something went wrong while saving.");
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -96,12 +161,11 @@ const OTPLogin = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e1e] p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e1e] p-4 font-sans">
       
-      {/* Container - Styled as per Frame 427 */}
       <div className="bg-white w-full max-w-[340px] p-6 rounded-[24px] shadow-lg">
         
-        {/* STEP 1: SEND OTP (Frame 427) */}
+        {/* STEP 1: SEND OTP */}
         {step === "send" && (
           <div className="text-center">
             <h2 className="text-[#2D3748] text-xl font-bold mb-6">Login</h2>
@@ -127,7 +191,7 @@ const OTPLogin = () => {
           </div>
         )}
 
-        {/* STEP 2: VERIFY OTP (Frame 426) */}
+        {/* STEP 2: VERIFY OTP */}
         {step === "verify" && (
           <div className="text-center">
             <h2 className="text-[#2D3748] text-xl font-bold mb-2">Login</h2>
@@ -160,7 +224,7 @@ const OTPLogin = () => {
           </div>
         )}
 
-        {/* STEP 3: SUCCESS (Frame 425) */}
+        {/* STEP 3: SUCCESS (SHOWN IF USER IS NEW OR PROFILE NOT FOUND) */}
         {step === "success" && (
           <div className="text-center py-4">
             <div className="flex justify-center mb-4">
@@ -170,25 +234,25 @@ const OTPLogin = () => {
                 </svg>
               </div>
             </div>
-            <h3 className="text-sm font-semibold text-[#4A5568] mb-10">Register Successfully</h3>
+            <h3 className="text-sm font-semibold text-[#4A5568] mb-10">Registered Successfully</h3>
             <button
               onClick={() => setStep("profile")}
-              className="bg-[#4285F4] text-white w-full py-3.5 rounded-xl font-semibold mb-3"
+              className="bg-[#4285F4] text-white w-full py-3.5 rounded-xl font-semibold mb-3 hover:bg-blue-600 transition-colors"
             >
               Set Profile
             </button>
             <button
               onClick={() => (window.location.href = "/")}
-              className="text-[#4285F4] text-sm font-semibold border border-[#E2E8F0] w-full py-3 rounded-xl"
+              className="text-[#4285F4] text-sm font-semibold border border-[#E2E8F0] w-full py-3 rounded-xl hover:bg-gray-50 transition-colors"
             >
               Skip
             </button>
           </div>
         )}
 
-        {/* STEP 4: PROFILE SETUP (Profile Frame) */}
+        {/* STEP 4: PROFILE SETUP */}
         {step === "profile" && (
-          <div className="text-left">
+          <div className="text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-[#2D3748] text-lg font-bold mb-4">Profile</h2>
             <div className="flex bg-[#F7FAFC] rounded-xl mb-6 overflow-hidden border border-[#EDF2F7] p-1">
               <button 
@@ -207,18 +271,21 @@ const OTPLogin = () => {
 
             <div className="space-y-4">
               <input
+                placeholder="Full Name"
                 className="w-full p-3.5 border border-[#EDF2F7] rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                 value={profileData.name}
                 onChange={(e) => setProfileData({...profileData, name: e.target.value})}
               />
               <input
                 placeholder="Enter Age"
+                type="number"
                 className="w-full p-3.5 border border-[#EDF2F7] rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                 value={profileData.age}
                 onChange={(e) => setProfileData({...profileData, age: e.target.value})}
               />
               <input
-                placeholder="Mail"
+                placeholder="Email Address"
+                type="email"
                 className="w-full p-3.5 border border-[#EDF2F7] rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
                 value={profileData.email}
                 onChange={(e) => setProfileData({...profileData, email: e.target.value})}
@@ -226,20 +293,18 @@ const OTPLogin = () => {
             </div>
 
             <button
-              onClick={() => {
-                toast.success("Profile Saved!");
-                window.location.href = "/";
-              }}
+              onClick={handleSaveProfile}
+              disabled={loading}
               className="bg-[#4285F4] text-white w-full py-4 rounded-xl font-bold mt-8 shadow-md hover:bg-blue-600 transition-all"
             >
-              Save
+              {loading ? "Saving..." : "Save & Finish"}
             </button>
           </div>
         )}
 
         {/* Error Messages */}
         {message && (
-          <p className="text-[12px] mt-4 text-red-500 text-center font-medium bg-red-50 p-2 rounded-lg">{message}</p>
+          <p className="text-[12px] mt-4 text-red-500 text-center font-medium bg-red-50 p-2 rounded-lg border border-red-100">{message}</p>
         )}
       </div>
     </div>

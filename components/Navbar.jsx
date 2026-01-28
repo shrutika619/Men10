@@ -5,18 +5,23 @@ import { useRouter } from "next/navigation";
 import { getAllCities } from "@/app/services/clinic.service";
 
 // Icons
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, ChevronDown } from "lucide-react";
 
 // Redux
 import { useSelector, useDispatch } from "react-redux";
-import { selectUserRole, logoutSuccess } from "@/redux/slices/authSlice";
+import { 
+  selectUser, 
+  selectIsAuthenticated, 
+  logoutSuccess,
+  fetchProfileDetails // ✅ 1. Import the Thunk
+} from "@/redux/slices/authSlice";
 
 const Navbar = () => {
   const router = useRouter();
   const dispatch = useDispatch();
 
-  // User Role
-  const role = useSelector(selectUserRole);
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
 
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -35,7 +40,19 @@ const Navbar = () => {
     setMobileMenuOpen(false);
   };
 
-  // Click outside
+  /* ============================================================
+     ✅ NEW: FETCH PROFILE DATA ON MOUNT
+     This ensures the Name & Avatar appear even after refresh
+     ============================================================ */
+  useEffect(() => {
+    if (isAuthenticated) {
+      // We check if we already have the name to avoid unnecessary calls (optional optimization)
+      // or just call it every time the app loads to ensure fresh data.
+      dispatch(fetchProfileDetails());
+    }
+  }, [dispatch, isAuthenticated]); 
+
+  // Click outside listener
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -69,7 +86,6 @@ const Navbar = () => {
         if (response?.success && Array.isArray(response?.data)) {
           const formattedLinks = response.data.reduce((acc, city) => {
             acc[city.name] = city.name.toLowerCase();
-            console.log(city._id ,"and", city.name)
             return acc;
           }, {});
           setClinicLinks(formattedLinks);
@@ -81,10 +97,9 @@ const Navbar = () => {
     fetchCityData();
   }, []);
 
-  // Logout
+  // Logout Handler
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
       dispatch(logoutSuccess());
       closeDropdown();
       router.push("/");
@@ -177,23 +192,49 @@ const Navbar = () => {
 
         {/* Right Section Desktop */}
         <div className="hidden md:flex items-center gap-4">
-          {/* Profile / Login */}
-          {role ? (
+          
+          {isAuthenticated ? (
             <div ref={profileDropdownRef} className="relative">
+              {/* Profile Trigger Button */}
               <button
                 onClick={() => toggleDropdown("profile")}
-                className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center hover:bg-blue-200"
+                className="flex items-center gap-2 hover:bg-gray-50 p-1 pr-2 rounded-full transition-colors border border-transparent hover:border-gray-100"
               >
-                <User size={20} className="text-blue-600" />
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-blue-50 flex-shrink-0">
+                   {user?.profileImageUrl ? (
+                      <img 
+                        src={user.profileImageUrl} 
+                        alt="User" 
+                        className="w-full h-full object-cover" 
+                      />
+                   ) : (
+                      <User size={20} className="text-blue-600" />
+                   )}
+                </div>
+
+                {/* Name Display */}
+                <div className="flex flex-col items-start">
+                   <span className="text-sm font-semibold text-gray-700 max-w-[100px] truncate leading-tight">
+                     {user?.fullName || "User"}
+                   </span>
+                </div>
+                
+                <ChevronDown size={14} className="text-gray-400" />
               </button>
 
+              {/* Dropdown Menu */}
               {openDropdown === "profile" && (
-                <ul className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2">
+                <ul className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+                  <li className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{user?.fullName || "User"}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.mobileNo || user?.email}</p>
+                  </li>
                   <li>
                     <Link
                       href="/profile"
                       onClick={closeDropdown}
-                      className="block px-4 py-2 hover:bg-gray-100"
+                      className="block px-4 py-2 hover:bg-gray-50 text-sm text-gray-700"
                     >
                       My Profile
                     </Link>
@@ -201,16 +242,16 @@ const Navbar = () => {
                   <li>
                     <button
                       onClick={handleLogout}
-                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 flex items-center gap-2"
+                      className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50 flex items-center gap-2 text-sm"
                     >
-                      <LogOut size={16} /> Logout
+                      <LogOut size={14} /> Logout
                     </button>
                   </li>
                 </ul>
               )}
             </div>
           ) : (
-            <Link href="/login" onClick={closeDropdown} className="hover:text-blue-600">
+            <Link href="/login" onClick={closeDropdown} className="hover:text-blue-600 font-medium">
               Login
             </Link>
           )}
@@ -218,7 +259,7 @@ const Navbar = () => {
           <Link
             href="/free-consultation"
             onClick={closeDropdown}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Start Now
           </Link>
@@ -235,23 +276,28 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white shadow-lg">
+        <div className="md:hidden bg-white shadow-lg border-t border-gray-100">
           <ul className="flex flex-col gap-3 px-6 py-4 font-medium">
-            <Link href="/" onClick={closeDropdown}>Home</Link>
-            <Link href="/about" onClick={closeDropdown}>About Us</Link>
+            <Link href="/" onClick={closeDropdown} className="py-1">Home</Link>
+            <Link href="/about" onClick={closeDropdown} className="py-1">About Us</Link>
 
-            {role ? (
-              <button onClick={handleLogout} className="text-red-600 text-left">
-                Logout
-              </button>
+            {isAuthenticated ? (
+              <>
+                 <Link href="/profile" onClick={closeDropdown} className="flex items-center gap-2 py-1">
+                    <User size={18} /> My Profile ({user?.fullName || "User"})
+                 </Link>
+                 <button onClick={handleLogout} className="text-red-600 text-left py-1 flex items-center gap-2">
+                    <LogOut size={18} /> Logout
+                 </button>
+              </>
             ) : (
-              <Link href="/login" onClick={closeDropdown}>Login</Link>
+              <Link href="/login" onClick={closeDropdown} className="py-1 text-blue-600">Login</Link>
             )}
 
             <Link
               href="/free-consultation"
               onClick={closeDropdown}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-center"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-center mt-2"
             >
               Start Now
             </Link>
