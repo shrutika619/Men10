@@ -1,47 +1,37 @@
-import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "./slices/authSlice";
-import { 
-  persistReducer, 
-  FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER 
-} from "redux-persist";
-import createWebStorage from "redux-persist/lib/storage/createWebStorage";
+import { configureStore } from '@reduxjs/toolkit';
+import { persistStore, persistReducer } from 'redux-persist';
+import storage from 'redux-persist/lib/storage'; // defaults to localStorage
+import { combineReducers } from 'redux';
+import authReducer from './slices/authSlice';
 
-const createNoopStorage = () => {
-  return {
-    getItem(_key) { return Promise.resolve(null); },
-    setItem(_key, value) { return Promise.resolve(value); },
-    removeItem(_key) { return Promise.resolve(); },
-  };
-};
+// 1. Combine Reducers
+const rootReducer = combineReducers({
+  auth: authReducer, 
+  // Add other reducers here in the future (e.g., cart: cartReducer)
+});
 
-const storage = typeof window !== "undefined" 
-  ? createWebStorage("local") 
-  : createNoopStorage();
-
-// ✅ FIX IS HERE
+// 2. Configure Persistence
 const persistConfig = {
-  key: "auth", // Change key to 'auth' to store it as "persist:auth" in LS
+  key: 'root',
   storage,
-  // ❌ REMOVE: whitelist: ["auth"], 
-  // ✅ OPTION A: Remove whitelist entirely to persist all auth state
-  // ✅ OPTION B: Whitelist actual keys inside authSlice
-  whitelist: ["token", "isAuthenticated", "role", "orgData"], 
+  // 🛑 CRITICAL: Blacklist 'auth' so tokens are NOT saved to localStorage.
+  // This ensures we rely on the secure HTTP-Only cookie for session restoration.
+  blacklist: ['auth'], 
 };
 
-const persistedReducer = persistReducer(persistConfig, authReducer);
+const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-const makeStore = () => {
+// 3. Export the Store Creator
+export const makeStore = () => {
   return configureStore({
-    reducer: {
-      auth: persistedReducer,
-    },
+    reducer: persistedReducer,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
-        serializableCheck: {
-          ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-        },
+        serializableCheck: false, // Required for redux-persist to avoid warnings
       }),
   });
 };
 
-export default makeStore;
+// 4. Export singleton for Axios & Provider to use
+export const store = makeStore(); 
+export const persistor = persistStore(store);

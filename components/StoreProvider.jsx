@@ -1,9 +1,9 @@
 "use client";
 import { useRef } from "react";
 import { Provider } from "react-redux";
-import makeStore from "@/redux/store"; // Adjust path to your store.js
-import { persistStore } from "redux-persist";
+import { makeStore } from "@/redux/store";
 import { PersistGate } from "redux-persist/integration/react";
+import { persistStore } from "redux-persist";
 
 export default function StoreProvider({ children }) {
   const storeRef = useRef();
@@ -17,7 +17,7 @@ export default function StoreProvider({ children }) {
 
   return (
     <Provider store={storeRef.current}>
-      {/* ✅ PersistGate ensures app doesn't load until state is restored */}
+      {/* We use PersistGate to ensure hydration (even though we blacklisted auth, it helps other slices) */}
       <PersistGate loading={null} persistor={persistorRef.current}>
         {children}
       </PersistGate>

@@ -1,10 +1,8 @@
-import axios from "axios";
-import { Constants } from "@/app/utils/constants"; 
+import api from "@/lib/axios"; // ✅ Use the new engine
+import { Constants } from "@/app/utils/constants";
 
 export const getAllClinics = async (cityId) => {
-    // 1. Validation Check: If cityId is missing, null, or undefined
     if (!cityId) {
-        console.error("Fetch aborted: cityId is required.");
         return { 
             success: false, 
             clinics: [], 
@@ -13,12 +11,10 @@ export const getAllClinics = async (cityId) => {
     }
 
     try {
-        // 2. Request with mandatory city parameter
-        const response = await axios.get(`${Constants.urlEndPoints.GET_CLINICS}`, {
+        const response = await api.get(`${Constants.urlEndPoints.GET_CLINICS}`, {
             params: { city: cityId }
         });
 
-        // 3. Handling the specific structure of your response
         if (response.data && response.data.success) {
             return {
                 success: true,
@@ -46,12 +42,10 @@ export const getAllClinics = async (cityId) => {
 
 export const getAllCities = async () => {
     try {
-        const response = await axios.get(Constants.urlEndPoints.GET_CLINICS_city);
-        // Based on your API docs, the data structure might be response.data.data.clinics
-        // But if you return response.data, the component can handle it.
+        const response = await api.get(Constants.urlEndPoints.GET_CLINICS_city);
         return response.data;
     } catch (error) {
-        console.error("Error fetching clinics:", error);
+        console.error("Error fetching cities:", error);
         return { success: false, data: [] };
     }
 };

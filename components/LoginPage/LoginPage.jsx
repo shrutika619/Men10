@@ -4,25 +4,24 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDispatch } from "react-redux";
 
-// ✅ SERVICES
+// ✅ Import Services
 import { sendLoginOtp, verifyLoginOtp } from "@/app/services/auth.service";
-// ✅ IMPORT getPatientProfile to check for existence
-import { savePatientProfile, getPatientProfile } from "@/app/services/patient.service"; 
+import { getPatientProfile, savePatientProfile } from "@/app/services/patient.service";
 
-// ✅ REDUX ACTIONS
-import { loginSuccess, updateUserData } from "@/redux/slices/authSlice";
+// ✅ Import Redux Actions
+import { setCredentials } from "@/redux/slices/authSlice";
 
-const OTPLogin = () => {
+const LoginPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
 
+  // State
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(Array(6).fill("")); 
   const [step, setStep] = useState("send"); 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   
-  // Profile Form State
   const [profileData, setProfileData] = useState({
     gender: "Male",
     name: "",
@@ -40,16 +39,16 @@ const OTPLogin = () => {
     }
     setLoading(true);
 
-    try {
-      await sendLoginOtp(phone);
-      setMessage("");
-      setStep("verify");
-      toast.success("OTP Sent!");
-    } catch (err) {
-      setMessage(err.response?.data?.message || "Failed to send OTP");
-    } finally {
-      setLoading(false);
+    const response = await sendLoginOtp(phone);
+
+    if (response?.success === false) {
+        setMessage(response.message || "Failed to send OTP");
+    } else {
+        setMessage("");
+        setStep("verify");
+        toast.success("OTP Sent!");
     }
+    setLoading(false);
   };
 
   /* ================= VERIFY OTP ================= */
@@ -60,93 +59,86 @@ const OTPLogin = () => {
       return;
     }
     setLoading(true);
+    
     try {
-      const res = await verifyLoginOtp(phone, finalOtp);
+      // ✅ 1. Verify OTP and get tokens (calls /api/login proxy)
+      const data = await verifyLoginOtp(phone, finalOtp);
       
-      const { accessToken, refreshToken, user, isNewUser } = res.data || res; 
+      const { accessToken, user, isNewUser } = data;
+      
+      if (!accessToken) {
+        throw new Error("Login failed - no access token");
+      }
 
-      if (!accessToken) throw new Error("Login failed: Access Token missing.");
-
-      // Set session cookies
-      await fetch("/api/set-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, refreshToken, role: "patient" }),
-      });
-
-      // Dispatch to Redux
-      dispatch(loginSuccess({
-        token: accessToken,
-        role: "patient",
-        user: { ...user, mobileNo: phone },
+      // ✅ 2. Store credentials in Redux (HTTP-Only cookie already set by /api/login)
+      dispatch(setCredentials({
+        accessToken: data.accessToken,
+        user: data.user
       }));
 
       toast.success("Login Successful");
 
-      // ✅ UPDATED LOGIC HERE
+      // ✅ 3. Check if user is new or needs profile setup
       if (isNewUser) {
-        // Case 1: Auth service explicitly says it's a new user
+        console.log("New user - showing profile setup");
         setStep("success"); 
-      } else {
-        // Case 2: User exists in Auth, but do they have a Profile?
-        try {
-            // Attempt to fetch profile immediately
-            const profileCheck = await getPatientProfile();
-            
-            if (profileCheck.success) {
-                // Profile found -> Go Home
-                window.location.href = "/";
-            } else if (profileCheck.isNotFound) {
-                // ✅ 404 DETECTED -> Force Profile Setup
-                setStep("success");
-            } else {
-                // Other error (e.g. server error), safe fallback to Home
-                window.location.href = "/";
-            }
-        } catch (ignored) {
-            // Safety net
-            window.location.href = "/";
+        return;
+      }
+
+      // ✅ 4. For existing users, verify profile exists
+      try {
+        // Backend should extract userId from JWT token, so no userId needed
+        const profileCheck = await getPatientProfile();
+        
+        if (profileCheck.success && profileCheck.data) {
+          // Profile exists -> Redirect to home
+          console.log("Profile exists - redirecting to home");
+          router.push("/");
+        } else {
+          // Profile doesn't exist -> Setup profile
+          console.log("Profile not found - showing profile setup");
+          setStep("success");
         }
+      } catch (profileError) {
+        // If profile check fails (404 or error), show profile setup
+        console.log("Profile check error - showing profile setup:", profileError.message);
+        setStep("success");
       }
 
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setMessage(err.response?.data?.message || err.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= SAVE PROFILE (STEP 4) ================= */
+  /* ================= SAVE PROFILE ================= */
   const handleSaveProfile = async () => {
-    if (!profileData.name) return setMessage("Full Name is required");
+    if (!profileData.name) {
+      setMessage("Full Name is required");
+      return;
+    }
     
     setLoading(true);
     setMessage("");
 
-    try {
-        const payload = {
-            fullName: profileData.name,
-            email: profileData.email,
-            age: profileData.age ? parseInt(profileData.age) : null,
-            gender: profileData.gender.toLowerCase()
-        };
+    const payload = {
+        fullName: profileData.name,
+        email: profileData.email,
+        age: profileData.age ? parseInt(profileData.age) : null,
+        gender: profileData.gender.toLowerCase()
+    };
 
-        const res = await savePatientProfile(payload);
+    const response = await savePatientProfile(payload);
 
-        if (res.success) {
-            dispatch(updateUserData(payload));
-            toast.success("Profile Saved!");
-            window.location.href = "/";
-        } else {
-            setMessage(res.message || "Failed to save profile");
-        }
-    } catch (err) {
-        console.error(err);
-        setMessage("Something went wrong while saving.");
-    } finally {
-        setLoading(false);
+    if (response.success) {
+        toast.success("Profile Saved!");
+        router.push("/");
+    } else {
+        setMessage(response.message || "Failed to save profile");
     }
+    setLoading(false);
   };
 
   /* ================= OTP INPUT HELPER ================= */
@@ -160,6 +152,7 @@ const OTPLogin = () => {
     }
   };
 
+  // ================= JSX UI (Unchanged) =================
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#1e1e1e] p-4 font-sans">
       
@@ -224,7 +217,7 @@ const OTPLogin = () => {
           </div>
         )}
 
-        {/* STEP 3: SUCCESS (SHOWN IF USER IS NEW OR PROFILE NOT FOUND) */}
+        {/* STEP 3: SUCCESS */}
         {step === "success" && (
           <div className="text-center py-4">
             <div className="flex justify-center mb-4">
@@ -242,7 +235,7 @@ const OTPLogin = () => {
               Set Profile
             </button>
             <button
-              onClick={() => (window.location.href = "/")}
+              onClick={() => router.push("/")}
               className="text-[#4285F4] text-sm font-semibold border border-[#E2E8F0] w-full py-3 rounded-xl hover:bg-gray-50 transition-colors"
             >
               Skip
@@ -311,4 +304,4 @@ const OTPLogin = () => {
   );
 };
 
-export default OTPLogin;
+export default LoginPage;

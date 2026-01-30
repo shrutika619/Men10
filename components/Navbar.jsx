@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getAllCities } from "@/app/services/clinic.service";
 
+// ✅ Import API Engine for Logout Call
+import api from "@/lib/axios"; 
+
 // Icons
 import { User, LogOut, ChevronDown } from "lucide-react";
 
@@ -13,7 +16,7 @@ import {
   selectUser, 
   selectIsAuthenticated, 
   logoutSuccess,
-  fetchProfileDetails // ✅ 1. Import the Thunk
+  fetchProfileDetails 
 } from "@/redux/slices/authSlice";
 
 const Navbar = () => {
@@ -22,7 +25,7 @@ const Navbar = () => {
 
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
-
+  console.log(user);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -41,16 +44,14 @@ const Navbar = () => {
   };
 
   /* ============================================================
-     ✅ NEW: FETCH PROFILE DATA ON MOUNT
-     This ensures the Name & Avatar appear even after refresh
+      ✅ PROFILE FETCHING LOGIC
      ============================================================ */
   useEffect(() => {
-    if (isAuthenticated) {
-      // We check if we already have the name to avoid unnecessary calls (optional optimization)
-      // or just call it every time the app loads to ensure fresh data.
+    // Only fetch if authenticated AND we don't have profile details yet
+    if (isAuthenticated && !user?.fullName) {
       dispatch(fetchProfileDetails());
     }
-  }, [dispatch, isAuthenticated]); 
+  }, [dispatch, isAuthenticated, user?.fullName]); 
 
   // Click outside listener
   useEffect(() => {
@@ -83,9 +84,15 @@ const Navbar = () => {
     const fetchCityData = async () => {
       try {
         const response = await getAllCities();
-        if (response?.success && Array.isArray(response?.data)) {
-          const formattedLinks = response.data.reduce((acc, city) => {
-            acc[city.name] = city.name.toLowerCase();
+        // Handle various response structures safely
+        const data = response?.data || response; 
+        
+        if (Array.isArray(data)) {
+          const formattedLinks = data.reduce((acc, city) => {
+            // Ensure city.name exists
+            if (city?.name) {
+                acc[city.name] = city.name.toLowerCase();
+            }
             return acc;
           }, {});
           setClinicLinks(formattedLinks);
@@ -97,15 +104,21 @@ const Navbar = () => {
     fetchCityData();
   }, []);
 
-  // Logout Handler
+  // ✅ LOGOUT HANDLER (UPDATED)
   const handleLogout = async () => {
     try {
+      // 1. Call Backend to delete HTTP-Only Cookie
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error("Logout API call failed", error);
+    } finally {
+      // 2. Clear Redux State (Client Side)
       dispatch(logoutSuccess());
       closeDropdown();
+      
+      // 3. Redirect
       router.push("/");
       router.refresh();
-    } catch (error) {
-      console.error("Logout failed", error);
     }
   };
 
@@ -208,9 +221,9 @@ const Navbar = () => {
                         alt="User" 
                         className="w-full h-full object-cover" 
                       />
-                   ) : (
+                    ) : (
                       <User size={20} className="text-blue-600" />
-                   )}
+                    )}
                 </div>
 
                 {/* Name Display */}

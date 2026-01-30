@@ -1,27 +1,30 @@
 "use client";
 import React, { useState, useEffect } from "react";
-// ✅ 1. Import useRouter for redirection
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import { User, Settings, ShoppingBag, HelpCircle, ShieldCheck, FileText, LogOut, Pencil, MapPin, X, Menu, Save, CheckCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { savePatientProfile } from "@/app/services/patient.service"; 
-// ✅ REDUX IMPORTS
+
+// ✅ REDUX & SERVICES
 import { useSelector, useDispatch } from "react-redux";
-// ✅ 2. Import logoutSuccess action
-import { fetchProfileDetails, updateUserData, logoutSuccess } from "@/redux/slices/authSlice";
+import { selectUser, selectIsAuthenticated, logoutSuccess } from "@/redux/slices/authSlice";
+import { getPatientProfile, savePatientProfile } from "@/app/services/patient.service"; 
+import api from "@/lib/axios";
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
-  const router = useRouter(); // ✅ Initialize Router
+  const router = useRouter();
 
-  const authUser = useSelector((state) => state.auth.user);
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  // Redux State
+  const authUser = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
 
+  // UI State
+  const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState(false);
 
-  // Local Form State
+  // Form State (Initialized empty, filled after fetch)
   const [formData, setFormData] = useState({
     name: "",
     gender: "",
@@ -34,60 +37,66 @@ const ProfilePage = () => {
   });
 
   /* =========================================================
-     LOGOUT HANDLER
-     ========================================================= */
-  const handleLogout = () => {
-    // 1. Clear Redux State
-    dispatch(logoutSuccess());
-    
-    // 2. Redirect to Home
-    router.push("/");
-    
-    // 3. Optional: Show toast
-    toast.success("Logged out successfully");
-  };
-
-  /* =========================================================
-     STEP 1: FETCH FRESH DATA ON MOUNT
+      1. ✅ FIXED: AUTH & DATA FETCHING (No userId needed)
      ========================================================= */
   useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(fetchProfileDetails());
-    } else {
-       // Optional: Redirect if not authenticated
-       // router.push("/login");
+    if (!isAuthenticated) {
+        return; // User not logged in, don't fetch
     }
-  }, [dispatch, isAuthenticated]);
+
+    const fetchDetails = async () => {
+      try {
+        setLoading(true);
+        
+        // ✅ FIXED: Backend extracts userId from JWT token
+        // No need to pass userId - it's in the Authorization header
+        const res = await getPatientProfile();
+        
+        if (res.success && res.data) {
+          const data = res.data;
+          // Sync Backend Data -> Local Form State
+          setFormData({
+              name: data.fullName || "",
+              gender: data.gender || "male",
+              age: data.age || "",
+              email: data.email || "",
+              phone: data.user_id?.mobileNo || authUser?.mobileNo || "Not Provided",
+              profileImageUrl: data.profileImageUrl || "",
+              homeAddress: data.homeAddress || "",
+              workAddress: data.workAddress || ""
+          });
+        } else {
+          // Profile doesn't exist - user might need to create it
+          console.log("No profile found for user");
+          toast.info("Please complete your profile");
+        }
+      } catch (err) {
+          console.error("Profile fetch error:", err);
+          if (err.response?.status === 404) {
+            toast.info("Profile not found. Please create your profile.");
+          } else {
+            toast.error("Failed to load profile data");
+          }
+      } finally {
+          setLoading(false);
+      }
+    };
+
+    fetchDetails();
+  }, [isAuthenticated, authUser]);
 
   /* =========================================================
-     STEP 2: SYNC REDUX DATA TO LOCAL FORM
+      2. HANDLERS
      ========================================================= */
-  useEffect(() => {
-    if (authUser) {
-      setFormData({
-        name: authUser.fullName || "",
-        gender: authUser.gender || "male",
-        age: authUser.age || "",
-        email: authUser.email || "",
-        profileImageUrl: authUser.profileImageUrl || "",
-        homeAddress: authUser.homeAddress || "",
-        workAddress: authUser.workAddress || "",
-        phone: authUser.mobileNo || "Not Provided" 
-      });
-    }
-  }, [authUser]);
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  /* =========================================================
-     STEP 3: SAVE & UPDATE REDUX CLIENT-SIDE
-     ========================================================= */
   const handleSave = async () => {
     setSaveStatus(false);
     
+    // Construct Payload for Backend
     const payload = {
       fullName: formData.name,
       email: formData.email,
@@ -99,238 +108,318 @@ const ProfilePage = () => {
 
     try {
       const res = await savePatientProfile(payload);
-
       if (res.success) {
+        toast.success("Profile Updated!");
         setSaveStatus(true);
         setIsEditing(false);
-        toast.success("Profile updated successfully");
-        dispatch(updateUserData(payload));
-        setTimeout(() => setSaveStatus(false), 3000);
+        
+        // Show checkmark briefly
+        setTimeout(() => setSaveStatus(false), 2000);
       } else {
-        toast.error(res.message || "Failed to save changes");
+        toast.error(res.message || "Failed to update");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("An error occurred while saving.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Update failed");
     }
   };
 
+  // ✅ LOGOUT HANDLER
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      dispatch(logoutSuccess());
+      router.push("/login");
+      router.refresh();
+    }
+  };
+
+  /* =========================================================
+      3. UI RENDERING
+     ========================================================= */
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans p-4 md:p-8">
-      
-      {/* MOBILE MENU TRIGGER */}
-      <div className="lg:hidden mb-4 flex justify-end">
-        <button onClick={() => setMenuOpen(true)} className="p-2 bg-white rounded-xl shadow-sm text-gray-600">
-          <Menu size={24} />
-        </button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
+      {/* Mobile Menu Button */}
+      <button 
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="lg:hidden fixed top-4 right-4 z-50 bg-white p-3 rounded-full shadow-lg"
+      >
+        {menuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* ---------------- SIDEBAR ---------------- */}
-        <aside className="hidden lg:block lg:col-span-3">
-          <div className="bg-white border-white border rounded-2xl p-6 shadow-sm sticky top-8">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-md overflow-hidden">
-                {formData.profileImageUrl ? (
-                    <img src={formData.profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
-                ) : <User size={24} />}
-              </div>
-              <div>
-                <h2 className="font-semibold text-base truncate w-32">{formData.name || "User"}</h2>
-                <p className="text-gray-400 text-xs capitalize">
-                    {formData.gender} {formData.age ? `• ${formData.age} yrs` : ""}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <SidebarItem icon={<Settings size={16}/>} label="Settings" active />
-              <SidebarItem icon={<ShoppingBag size={16}/>} label="My Orders" />
-              <SidebarItem icon={<HelpCircle size={16}/>} label="Help" />
-              <SidebarItem icon={<ShieldCheck size={16}/>} label="Privacy Policy" />
-              <SidebarItem icon={<FileText size={16}/>} label="Terms & Conditions" />
-            </div>
-            
-            {/* ✅ DESKTOP LOGOUT BUTTON */}
-            <button 
-                onClick={handleLogout}
-                className="w-full mt-8 flex items-center justify-center gap-2 py-3 bg-red-50 text-red-500 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors"
-            >
-               <LogOut size={16} /> Logout
-            </button>
-          </div>
-        </aside>
-
-        {/* ---------------- MAIN CONTENT ---------------- */}
-        <main className="lg:col-span-9 space-y-6">
-          {saveStatus && (
-            <div className="flex items-center gap-2 bg-green-50 text-green-700 px-5 py-3 rounded-xl border-white border text-sm shadow-sm">
-              <CheckCircle size={18} /> <span>Changes saved successfully!</span>
-            </div>
-          )}
-
-          {/* EDITABLE PROFILE CARD */}
-          <section className="bg-white border-white border rounded-2xl p-6 md:p-8 flex items-center justify-between shadow-sm relative">
-             <div className="flex items-center gap-6 w-full">
-               <div className="hidden sm:flex w-16 h-16 bg-blue-50 rounded-full items-center justify-center text-blue-600 border border-blue-50 overflow-hidden">
-                 {formData.profileImageUrl ? (
-                     <img src={formData.profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
-                 ) : <User size={32} />}
-               </div>
-               <div className="flex-1">
-                 {isEditing ? (
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
-                     <div className="space-y-1">
-                       <label className="text-[10px] text-gray-400 uppercase font-medium tracking-wider">Full Name</label>
-                       <input name="name" value={formData.name} onChange={handleInputChange} className="w-full border-b border-blue-200 outline-none text-lg bg-transparent py-1 focus:border-blue-500 transition-colors" placeholder="Enter full name" />
-                     </div>
-                     <div className="space-y-1">
-                       <label className="text-[10px] text-gray-400 uppercase font-medium tracking-wider">Age</label>
-                       <input name="age" type="number" value={formData.age} onChange={handleInputChange} className="w-full border-b border-blue-200 outline-none text-lg bg-transparent py-1 focus:border-blue-500 transition-colors" placeholder="25" />
-                     </div>
-                   </div>
-                 ) : (
-                   <div>
-                     <h2 className="text-xl font-semibold text-gray-900">{formData.name || "Your Name"}</h2>
-                     <p className="text-gray-500 text-sm mt-1 uppercase tracking-tight font-medium">
-                       {formData.gender} • {formData.age ? `${formData.age} years old` : "Age not set"}
-                     </p>
-                   </div>
-                 )}
-               </div>
-             </div>
-             <div className="flex items-center gap-2">
-               {!isEditing ? (
-                 <button onClick={() => setIsEditing(true)} className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-                   <Pencil size={18} />
-                 </button>
-               ) : (
-                 <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all">
-                   <Save size={16} /> Save Changes
-                 </button>
-               )}
-             </div>
-          </section>
-
-          {/* CONTACT INFO CARD */}
-          <section className="bg-white border-white border rounded-2xl p-6 md:p-8 shadow-sm">
-             <div className="flex items-center gap-2 mb-6">
-                <Phone className="text-blue-600" size={20} />
-                <h3 className="font-semibold text-base text-gray-900">Contact Information</h3>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                   <label className="text-[10px] text-gray-400 uppercase font-medium tracking-wider">Email Address</label>
-                   {isEditing ? (
-                     <input name="email" value={formData.email} onChange={handleInputChange} className="w-full p-2 bg-[#F9FAFB] border border-gray-100 rounded-lg text-sm outline-none focus:border-blue-300 transition-all" />
-                   ) : (
-                     <p className="text-sm text-gray-700 font-medium">{formData.email || "No Email Provided"}</p>
-                   )}
-                </div>
-                <div className="space-y-1">
-                   <label className="text-[10px] text-gray-400 uppercase font-medium tracking-wider">Mobile Number</label>
-                   <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-700 font-medium">{formData.phone}</p>
-                      <ShieldCheck size={14} className="text-green-500" title="Verified" />
-                   </div>
-                </div>
-             </div>
-          </section>
-
-          {/* ADDRESS SECTION */}
-          {(formData.homeAddress || formData.workAddress || isEditing) && (
-            <section className="bg-white border-white border rounded-2xl p-6 md:p-8 shadow-sm animate-in fade-in duration-500">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <MapPin className="text-blue-600" size={20} />
-                  <h3 className="font-semibold text-base text-gray-900">Address Book</h3>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <EditableAddress 
-                  label="HOME ADDRESS" 
-                  name="homeAddress" 
-                  value={formData.homeAddress} 
-                  isEditing={isEditing} 
-                  onChange={handleInputChange} 
-                  accentColor="bg-blue-600" 
-                />
-                <EditableAddress 
-                  label="WORK ADDRESS" 
-                  name="workAddress" 
-                  value={formData.workAddress} 
-                  isEditing={isEditing} 
-                  onChange={handleInputChange} 
-                  accentColor="bg-orange-500" 
-                />
-              </div>
-            </section>
-          )}
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-        </main>
-      </div>
+          {/* ========== LEFT SIDEBAR ========== */}
+          <div className={`
+            lg:col-span-3 
+            ${menuOpen ? 'block' : 'hidden lg:block'}
+            fixed lg:relative inset-0 z-40 lg:z-auto
+            bg-white lg:bg-transparent
+            p-6 lg:p-0
+          `}>
+            {/* Overlay for mobile */}
+            {menuOpen && (
+              <div 
+                className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+                onClick={() => setMenuOpen(false)}
+              />
+            )}
 
-       {/* MOBILE DRAWER */}
-       {menuOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
-          <div className="relative bg-white w-full rounded-t-3xl p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">Menu</h3>
-              <button onClick={() => setMenuOpen(false)} className="p-2 bg-gray-50 rounded-full"><X size={20}/></button>
+            <div className="bg-white rounded-2xl shadow-xl p-6 relative z-40">
+              {/* Profile Header */}
+              <div className="text-center mb-6 pb-6 border-b">
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg overflow-hidden">
+                  {formData.profileImageUrl ? (
+                    <img src={formData.profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    formData.name.charAt(0).toUpperCase() || <User size={40} />
+                  )}
+                </div>
+                <h2 className="text-xl font-bold text-gray-800">{formData.name || "User"}</h2>
+                <div className="flex items-center justify-center gap-1 mt-2 text-gray-500 text-sm">
+                  <Phone size={14} />
+                  <p>{formData.phone}</p>
+                </div>
+              </div>
+
+              {/* Menu Items */}
+              <nav className="space-y-2">
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium shadow-md transition-all hover:shadow-lg">
+                  <User size={20} />
+                  <span>My Profile</span>
+                </button>
+                
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-all">
+                  <ShoppingBag size={20} />
+                  <span>Orders</span>
+                </button>
+                
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-all">
+                  <Settings size={20} />
+                  <span>Settings</span>
+                </button>
+                
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-all">
+                  <HelpCircle size={20} />
+                  <span>Help & Support</span>
+                </button>
+                
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-all">
+                  <ShieldCheck size={20} />
+                  <span>Privacy Policy</span>
+                </button>
+                
+                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-all">
+                  <FileText size={20} />
+                  <span>Terms & Conditions</span>
+                </button>
+                
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-all font-medium"
+                >
+                  <LogOut size={20} />
+                  <span>Logout</span>
+                </button>
+              </nav>
             </div>
-            <div className="space-y-3">
-              <SidebarItem icon={<Settings size={18}/>} label="Account Settings" active />
-              <SidebarItem icon={<ShoppingBag size={18}/>} label="My Orders" />
-              
-              {/* ✅ MOBILE LOGOUT BUTTON */}
-              <button 
-                onClick={handleLogout}
-                className="w-full py-4 rounded-xl bg-red-50 text-red-600 font-medium text-sm flex items-center justify-center gap-2"
-              >
-                <LogOut size={18} /> Logout Account
-              </button>
+          </div>
+
+          {/* ========== MAIN CONTENT ========== */}
+          <div className="lg:col-span-9 space-y-6">
+            
+            {/* Personal Information Card */}
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <User size={24} />
+                  Personal Information
+                </h3>
+                {!isEditing ? (
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-blue-50 transition-all shadow-md"
+                  >
+                    <Pencil size={16} />
+                    Edit
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleSave}
+                      className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-green-600 transition-all shadow-md"
+                    >
+                      {saveStatus ? <CheckCircle size={16} /> : <Save size={16} />}
+                      {saveStatus ? "Saved!" : "Save"}
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                      isEditing 
+                        ? 'border-blue-300 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                {/* Gender & Age Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                        isEditing 
+                          ? 'border-blue-300 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+                          : 'border-gray-200 bg-gray-50'
+                      }`}
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Age</label>
+                    <input
+                      type="number"
+                      name="age"
+                      value={formData.age}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                        isEditing 
+                          ? 'border-blue-300 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+                          : 'border-gray-200 bg-gray-50'
+                      }`}
+                      placeholder="Enter age"
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                      isEditing 
+                        ? 'border-blue-300 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+
+                {/* Phone (Read Only) */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    disabled
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-100 text-gray-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Phone number cannot be changed</p>
+                </div>
+              </div>
             </div>
+
+            {/* Address Information Card */}
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <MapPin size={24} />
+                  Address Information
+                </h3>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Home Address */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Home Address</label>
+                  <textarea
+                    name="homeAddress"
+                    value={formData.homeAddress}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    rows="3"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                      isEditing 
+                        ? 'border-blue-300 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                    placeholder="Enter your home address"
+                  />
+                </div>
+
+                {/* Work Address */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Work Address</label>
+                  <textarea
+                    name="workAddress"
+                    value={formData.workAddress}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    rows="3"
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                      isEditing 
+                        ? 'border-blue-300 bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500' 
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                    placeholder="Enter your work address"
+                  />
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
-
-/* --- SUB COMPONENTS --- */
-
-const SidebarItem = ({ icon, label, active = false }) => (
-  <button className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-medium transition-all ${
-    active ? "bg-blue-50 text-blue-600" : "text-gray-500 hover:bg-gray-50"
-  }`}>
-    <div className="flex items-center gap-3">
-      <span>{icon}</span>
-      <span>{label}</span>
-    </div>
-  </button>
-);
-
-const EditableAddress = ({ label, name, value, isEditing, onChange, accentColor }) => (
-  <div className="border border-white rounded-xl p-5 bg-[#FAFBFC] hover:shadow-inner transition-all relative">
-    <div className={`absolute top-0 left-0 w-1 h-full rounded-l-xl ${accentColor}`} />
-    <span className="text-[9px] font-semibold tracking-widest text-gray-400 uppercase block mb-2">{label}</span>
-    {isEditing ? (
-      <textarea 
-        name={name}
-        value={value} 
-        onChange={onChange}
-        rows={2}
-        className="w-full p-2 bg-white border border-blue-100 rounded-lg text-sm outline-none focus:border-blue-400 resize-none transition-shadow"
-        placeholder="Enter address..."
-      />
-    ) : (
-      <p className="text-xs text-gray-600 leading-relaxed font-medium min-h-[40px]">
-        {value || "Not set"}
-      </p>
-    )}
-  </div>
-);
 
 export default ProfilePage;

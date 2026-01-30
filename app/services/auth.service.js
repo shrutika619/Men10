@@ -1,46 +1,93 @@
-import axiosInstance from "@/app/utils/axiosInstance"; // ✅ Use the Instance
+import api from "@/lib/axios";
 import { Constants } from "@/app/utils/constants";
-
 /**
- * SEND LOGIN OTP
+ * Send OTP for Login
+ * Calls backend directly (no auth needed)
  */
 export const sendLoginOtp = async (mobileNo) => {
   try {
-    const response = await axiosInstance.post(
-      Constants.urlEndPoints.SEND_OTP,
-      { mobileNo }
-    );
+    // Import Constants dynamically to avoid issues
     
-    // Normalize response to match your other services
-    return response.data; 
+    const response = await api.post(Constants.urlEndPoints.SEND_OTP, {
+      mobileNo
+    });
+    
+    return {
+      success: true,
+      data: response.data
+    };
   } catch (error) {
-    console.error("Send OTP Error:", error);
-    // Return a failed object instead of crashing
+    console.error("Send OTP error:", error);
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to send OTP",
+      message: error.response?.data?.message || "Failed to send OTP"
     };
   }
 };
 
 /**
- * VERIFY LOGIN OTP
- * Returns accessToken & refreshToken
+ * ✅ CRITICAL: Verify OTP and Login
+ * Must use Next.js API proxy (/api/login) to set HTTP-Only cookie
  */
 export const verifyLoginOtp = async (mobileNo, otp) => {
   try {
-    const response = await axiosInstance.post(
-      Constants.urlEndPoints.VERIFY_OTP,
-      { mobileNo, otp },
-      { withCredentials: true } // ✅ Keeps cookies working
-    );
+    // ✅ Call Next.js API Route (not backend directly)
+    // This route will set the HTTP-Only refreshToken cookie
+    const response = await api.post(  Constants.urlEndPoints.VERIFY_OTP, {
+      mobileNo,
+      otp
+    }, {
+      withCredentials: true // Important for cookie handling
+    });
+    
+    const resData = response.data;
 
-    return response.data;
+if (!resData.success) {
+  throw new Error(resData.message || "Login failed");
+}
+
+const { accessToken, user } = resData.data;
+
+if (!accessToken) {
+  throw new Error("Login failed - no access token");
+}
+
+return {
+  accessToken,
+  user,
+};
+
   } catch (error) {
-    console.error("Verify OTP Error:", error);
-    // Throwing here is actually okay because OTPLogin.jsx expects to catch errors
-    // But for consistency, we can return the error object, 
-    // and let the component handle the 'success: false' check.
-    throw error; 
+    console.error("Verify OTP error:", error);
+    throw error;
+  }
+};
+
+/**
+ * ✅ Admin Login (if needed)
+ * Also uses Next.js proxy to set cookie
+ */
+export const adminLogin = async (username, password) => {
+  try {
+    const response = await axios.post("/api/login", {
+      username,
+      password
+    }, {
+      withCredentials: true
+    });
+    
+    const data = response.data;
+    
+    if (!data.success) {
+      throw new Error(data.message || "Login failed");
+    }
+    
+    return {
+      accessToken: data.accessToken,
+      user: data.user
+    };
+  } catch (error) {
+    console.error("Admin login error:", error);
+    throw error;
   }
 };

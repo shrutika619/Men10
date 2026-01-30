@@ -1,16 +1,19 @@
 "use client";
 import React, { useState, useEffect } from "react";
+// ❌ Removed useRouter from LoginModal to prevent redirects
 import { useRouter } from "next/navigation"; 
 import { toast } from "sonner";
+
+// ✅ Services
 import { sendLoginOtp, verifyLoginOtp } from "@/app/services/auth.service"; 
 import { getConcerns, getQuestions, submitAssessment, getMyAssessment } from "@/app/services/assesment.service";
 
-// ✅ REDUX IMPORTS
+// ✅ Redux
 import { useSelector, useDispatch } from "react-redux";
-import { selectIsAuthenticated, loginSuccess } from "@/redux/slices/authSlice";
+import { selectIsAuthenticated, setCredentials } from "@/redux/slices/authSlice"; 
 import { useAssessment } from "@/app/hooks/useAssessment"; 
 
-// =================== Login Modal Component ===================
+// =================== Login Modal (Pure Logic, No Redirects) ===================
 const LoginModal = ({ onClose, onLoginSuccess }) => {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -30,12 +33,15 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
     setLoading(true);
     try {
       const res = await sendLoginOtp(phone);
-      setMessage(res.message);
-      toast.success("OTP sent successfully!");
-      setStep("verify");
+      if (res.success === false) {
+          setMessage(res.message);
+      } else {
+          setMessage("");
+          toast.success("OTP sent!");
+          setStep("verify");
+      }
     } catch (err) {
       setMessage(err.response?.data?.message || "Failed to send OTP");
-      toast.error("Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -43,44 +49,30 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
 
   const verifyOtp = async () => {
     if (otp.length !== 6) {
-      setMessage("Enter a valid 6-digit OTP");
+      setMessage("Enter valid 6-digit OTP");
       return;
     }
-    if (loading) return; 
-    
     setLoading(true);
     setMessage(""); 
 
     try {
-      const res = await verifyLoginOtp(phone, otp);
-      const data = res.data?.data || res.data || res;
+      // 1. Call Service (Proxy sets HTTP-Only Cookie)
+      const data = await verifyLoginOtp(phone, otp);
+      const { accessToken, user } = data;
       
-      if (!data.accessToken) {
-         throw new Error("Invalid response: Access Token missing");
-      }
+      if (!accessToken) throw new Error("Access Token missing");
 
-      await fetch("/api/set-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            accessToken: data.accessToken, 
-            refreshToken: data.refreshToken,
-            role: "patient" 
-        }),
-      });
-
-      dispatch(loginSuccess({
-        token: data.accessToken,
-        role: "patient",
-        user: data.user
-      }));
-
+      // 2. Update Redux (So api.js can see the token immediately)
+      dispatch(setCredentials({ accessToken, user }));
       toast.success("Login successful!");
-      onLoginSuccess(data.accessToken);
+
+      // 3. Trigger Success Callback (This submits the form)
+      // 🛑 NO REDIRECTS HERE
+      onLoginSuccess(); 
 
     } catch (err) {
-      console.error("OTP Verification Failed:", err);
-      setMessage(err.response?.data?.message || err.message || "Invalid OTP");
+      console.error(err);
+      setMessage(err.response?.data?.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -114,8 +106,6 @@ const LoginModal = ({ onClose, onLoginSuccess }) => {
 // =================== Assessment Component ===================
 const Assessment = () => {
   const router = useRouter(); 
-  
-  // ✅ REDUX SOURCE OF TRUTH
   const isLoggedIn = useSelector(selectIsAuthenticated); 
 
   const { 
@@ -131,24 +121,28 @@ const Assessment = () => {
   const [questionsDb, setQuestionsDb] = useState({}); 
   const [loading, setLoading] = useState(false);
 
- 
+  // Sync State Logic
   useEffect(() => {
     const handleAuthStateChange = async () => {
-      // 🛑 CASE 1: USER LOGGED OUT
+      // 1. Logged Out -> Reset Form
       if (!isLoggedIn) {
         resetAssessment(); 
         return;
       }
 
-      // ✅ CASE 2: USER LOGGED IN
+      // 2. Logged In
       if (isLoggedIn) {
+        // 🛑 CRITICAL: If user already has selected conditions (local state), 
+        // DO NOT fetch from backend. Keep local answers so we can submit them.
+        if (selectedConditions.length > 0) {
+            return; 
+        }
+
+        // Only fetch history if the form is empty (fresh login from dashboard)
         try {
           const res = await getMyAssessment(); 
-          
           if (res.success && res.data) {
-             // User has backend data -> Load it
              const { gender, selectedConcerns, scores } = res.data;
-
              const formattedResults = Object.keys(scores || {}).map(condition => {
                 const score = scores[condition];
                 let severity = "Low";
@@ -163,10 +157,6 @@ const Assessment = () => {
                 selectedConcerns,
                 uiResults: formattedResults
              });
-          } else {
-             // No backend data? Reset immediately.
-             // We do NOT check for "local answers" anymore.
-             resetAssessment();
           }
         } catch (error) {
           console.error("Error syncing state:", error);
@@ -179,7 +169,7 @@ const Assessment = () => {
   }, [isLoggedIn]); 
 
 
-  // Fetch Concerns when gender changes
+  // Fetch Concerns
   useEffect(() => {
     const fetchConcerns = async () => {
         if(gender) {
@@ -227,7 +217,7 @@ const Assessment = () => {
     }
   };
 
-  const handleSubmitAssessment = async (freshToken = null) => { 
+  const handleSubmitAssessment = async () => { 
     setLoading(true);
   
     const formattedAnswers = {};
@@ -239,7 +229,8 @@ const Assessment = () => {
       });
     }); 
 
-    const result = await submitAssessment(gender, selectedConditions, formattedAnswers, freshToken);
+    // API Call (Interceptor attaches token from Redux)
+    const result = await submitAssessment(gender, selectedConditions, formattedAnswers);
 
     if (result.success) {
         const backendScores = result.data.assessment.scores;
@@ -262,9 +253,10 @@ const Assessment = () => {
     setLoading(false);
   };
 
-  const handleLoginSuccess = (freshAccessToken) => {
+  // ✅ HANDLER: Closes modal and submits immediately
+  const handleLoginSuccess = () => {
     setShowLoginModal(false);
-    handleSubmitAssessment(freshAccessToken); 
+    handleSubmitAssessment(); 
   };
   
   return (
@@ -326,6 +318,7 @@ const Assessment = () => {
         />
       )}
 
+      {/* Login Modal */}
       {showLoginModal && (
         <LoginModal onClose={() => setShowLoginModal(false)} onLoginSuccess={handleLoginSuccess} />
       )}
@@ -359,7 +352,7 @@ const Assessment = () => {
   );
 };
 
-// Helper for Questions (Refresh Safe)
+// Helper for Questions
 const QuestionsView = ({ selectedConditions, questionsDb, answers, onAnswer, onBack, onSubmit, loading, onRefreshNeeded }) => {
     useEffect(() => {
         const hasQuestions = selectedConditions.every(c => questionsDb[c]);

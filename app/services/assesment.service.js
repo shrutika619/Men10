@@ -1,15 +1,11 @@
-import axiosInstance from "@/app/utils/axiosInstance"; // ✅ Use the centralized instance
+import api from "@/lib/axios"; // ✅ Correct
 import { Constants } from "@/app/utils/constants";
 
-// =================== SERVICES ===================
-
-// 1. Get Concerns by Gender
+// 1. Get Concerns
 export const getConcerns = async (gender) => {
   try {
     const formattedGender = gender.charAt(0).toUpperCase() + gender.slice(1);
-    
-    // ✅ Use axiosInstance (Auto-handles URL if base path is set, otherwise full URL)
-    const response = await axiosInstance.get(`${Constants.urlEndPoints.GET_CONCERNS}/${formattedGender}`);
+    const response = await api.get(`${Constants.urlEndPoints.GET_CONCERNS}/${formattedGender}`);
 
     if (response.data.success) {
       return { success: true, data: response.data.data };
@@ -21,7 +17,7 @@ export const getConcerns = async (gender) => {
   }
 };
 
-// 2. Get Questions for Selected Concerns
+// 2. Get Questions
 export const getQuestions = async (gender, concerns) => {
   try {
     const payload = {
@@ -29,7 +25,7 @@ export const getQuestions = async (gender, concerns) => {
       concerns: concerns,
     };
 
-    const response = await axiosInstance.post(Constants.urlEndPoints.GET_QUESTIONS, payload);
+    const response = await api.post(Constants.urlEndPoints.GET_QUESTIONS, payload);
 
     if (response.data.success) {
       return { success: true, data: response.data.data.questions };
@@ -42,7 +38,7 @@ export const getQuestions = async (gender, concerns) => {
 };
 
 // 3. Submit Assessment
-export const submitAssessment = async (gender, selectedConcerns, formattedAnswers, freshToken) => {
+export const submitAssessment = async (gender, selectedConcerns, formattedAnswers) => {
   try {
     const payload = {
       gender: gender.charAt(0).toUpperCase() + gender.slice(1),
@@ -50,15 +46,8 @@ export const submitAssessment = async (gender, selectedConcerns, formattedAnswer
       answers: formattedAnswers,
     };
 
-    // ✅ Special Config: If we have a fresh token (immediate login),
-    // pass it in a custom header. The interceptor will pick it up, use it, and delete the header.
-    const config = freshToken ? { headers: { _freshToken: freshToken } } : {};
-
-    const response = await axiosInstance.post(
-      Constants.urlEndPoints.SUBMIT_ASSESSMENT,
-      payload,
-      config 
-    );
+    // Note: We don't need to pass token manually anymore, 'api' grabs it from Redux
+    const response = await api.post(Constants.urlEndPoints.SUBMIT_ASSESSMENT, payload);
 
     if (response.data.success) {
       return { success: true, data: response.data.data };
@@ -68,12 +57,11 @@ export const submitAssessment = async (gender, selectedConcerns, formattedAnswer
   } catch (error) {
     console.error("Error submitting assessment:", error);
 
-    // Explicitly handle 401 if the interceptor didn't auto-refresh successfully
     if (error.response?.status === 401) {
       return {
         success: false,
         message: "Please login to submit assessment",
-        requireLogin: true, // Signals UI to show modal
+        requireLogin: true, 
       };
     }
 
@@ -84,28 +72,20 @@ export const submitAssessment = async (gender, selectedConcerns, formattedAnswer
   }
 };
 
-// 4. ✅ Get My Assessment (Required for Data Hydration)
+// 4. Get My Assessment
 export const getMyAssessment = async () => {
   try {
-    // Ensure this endpoint exists in your Constants or use the raw string
-    const endpoint = Constants.urlEndPoints.GET_MY_ASSESSMENT;
-
-    // No token logic needed here; axiosInstance grabs it from Redux storage
-    const response = await axiosInstance.get(endpoint);
+    const response = await api.get(Constants.urlEndPoints.GET_MY_ASSESSMENT);
 
     if (response.data.success) {
-      return { success: true, data: response.data.data }; // Returns: { gender, selectedConcerns, scores }
+      return { success: true, data: response.data.data }; 
     }
     return { success: false, message: response.data.message };
 
   } catch (error) {
-    // If 401 (Not logged in / Token invalid), just return success:false.
-    // The UI knows this means "no data found" and won't show an error toast.
     if (error.response?.status === 401 || error.response?.status === 404) {
         return { success: false };
     }
-  
-
     console.error("Error fetching history:", error);
     return { 
         success: false, 
@@ -114,18 +94,17 @@ export const getMyAssessment = async () => {
   }
 };
 
-// ✅ NEW: Reset/Delete Assessment on Backend
 export const resetAssessmentData = async () => {
   try {
-    const endpoint = "/assessment/reset"; // Ensure this matches your API definition
-    const response = await axiosInstance.delete(endpoint);
+    // Assuming you add RESET_ASSESSMENT to your Constants eventually
+    const endpoint = "/assessment/reset"; 
+    const response = await api.delete(endpoint);
 
     if (response.data.success) {
       return { success: true, message: response.data.message };
     }
     return { success: false, message: response.data.message };
   } catch (error) {
-    console.error("Error resetting assessment:", error);
     return { success: false, message: error.response?.data?.message || "Failed to reset" };
   }
 };

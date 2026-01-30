@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // ✅ import router for redirect
+import { useRouter } from "next/navigation"; 
 import {
   LineChart,
   Line,
@@ -10,15 +10,18 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {toast} from "sonner";
-import {sendClinicOtp, verifyClinicOtp} from "@/app/services/clinic-auth.service";
+import { toast } from "sonner";
+// ✅ Import Service
+import { sendClinicOtp, verifyClinicOtp } from "@/app/services/clinic-auth.service";
 
 export default function ClinicAuth() {
+  const router = useRouter(); 
+  
   const [step, setStep] = useState(0);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [mode, setMode] = useState("");
-  const router = useRouter(); // ✅ initialize router
+  const [loading, setLoading] = useState(false); // ✅ Manage loading state
 
   const isValidPhone = (num) => /^[6-9]\d{9}$/.test(num);
 
@@ -29,7 +32,7 @@ export default function ClinicAuth() {
       return;
     }
 
-    // setLoading(true);
+    setLoading(true); // ✅ Start Loading
     try {
       const res = await sendClinicOtp(phone);
 
@@ -40,13 +43,13 @@ export default function ClinicAuth() {
 
       if (message === "Please login") {
         toast.info("Clinic already exists. Please login.");
-        // router.push("/login"); // TODO: Need to decide where to land
+        router.push("/login"); // Redirect to main login
         return;
       }
 
       toast.error(message || "Failed to send OTP");
     } finally {
-      // setLoading(false);
+      setLoading(false); // ✅ Stop Loading
     }
   };
 
@@ -76,44 +79,46 @@ export default function ClinicAuth() {
       return;
     }
 
-    // setLoading(true);
+    setLoading(true); // ✅ Start Loading
     try {
       const res = await verifyClinicOtp(phone, otpCode);
-      const data = res.data;
+      const data = res.data || res; // Handle different response structures
 
+      // ✅ 1. Store Mobile for Registration Form (As per docs)
       if(data.mobileNo){
         localStorage.setItem("clinic_mobile", data.mobileNo);
       }
 
-      // 🔁 Clinic already approved → redirect to login
+      // 🔁 2. Clinic already approved → redirect to login
       if (data.shouldRedirectToLogin) {
         toast.success(
             data.message || "Clinic already approved. Please login."
         );
-        // router.push("/login"); // TODO: Need to decide where to land
+        router.push("/login"); 
         return;
       }
 
-      // ❌ Clinic rejected
+      // ❌ 3. Clinic rejected
       if (data.status === "rejected") {
         toast.error(data.rejectionReason || "Clinic application rejected");
         return;
       }
 
-      // ✅ OTP verified, form not submitted
+      // ✅ 4. OTP verified, New/Pending Clinic -> Show Info Page
       toast.success("OTP verified successfully");
       setStep(3);
+      
     } catch (err) {
       toast.error(
           err.response?.data?.message || "Invalid or expired OTP"
       );
     } finally {
-      // setLoading(false);
+      setLoading(false); // ✅ Stop Loading
     }
   };
 
   const handleRedirect = () => {
-    router.push("/joinnow"); // ✅ redirect to joinnow page
+    router.push("/joinnow"); // ✅ redirect to Registration Form
   };
 
   const data = [
@@ -126,6 +131,7 @@ export default function ClinicAuth() {
 
   return (
     <div className="min-h-screen bg-[#0c1220] flex items-center justify-center text-gray-900">
+      
       {/* STEP 0 - Welcome */}
       {step === 0 && (
         <div className="bg-white p-8 rounded-2xl shadow-lg w-[360px] text-center">
@@ -164,16 +170,17 @@ export default function ClinicAuth() {
             placeholder="Enter phone number"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-2 focus:outline-none"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-2 focus:outline-none focus:border-blue-500 transition-colors"
           />
           <p className="text-sm text-gray-500 mb-4">
             OTP will be shared for verification
           </p>
           <button
             onClick={handleSendOTP}
-            className="w-full bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white py-2 rounded-lg font-medium hover:opacity-90 transition"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white py-2 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
           >
-            Send OTP
+            {loading ? "Sending..." : "Send OTP"}
           </button>
         </div>
       )}
@@ -188,7 +195,6 @@ export default function ClinicAuth() {
             Enter 6-digit OTP sent to xxxxxx{phone.slice(-4)}
           </p>
 
-          {/* ✅ Smooth OTP inputs */}
           <div className="flex justify-between mb-6">
             {otp.map((digit, i) => (
               <input
@@ -198,24 +204,33 @@ export default function ClinicAuth() {
                 value={digit}
                 maxLength={1}
                 onChange={(e) => handleOtpChange(i, e.target.value)}
-                className="w-10 h-10 text-center border border-gray-300 rounded-lg focus:outline-none text-lg"
+                className="w-10 h-10 text-center border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-lg transition-colors"
               />
             ))}
           </div>
 
           <button
             onClick={handleVerifyOTP}
-            className="w-full bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white py-2 rounded-lg font-medium hover:opacity-90 transition"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white py-2 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
           >
-            Verify OTP
+            {loading ? "Verifying..." : "Verify OTP"}
+          </button>
+          
+          <button 
+             onClick={() => setStep(1)}
+             className="w-full mt-3 text-sm text-blue-600 hover:underline"
+          >
+             Change Phone Number
           </button>
         </div>
       )}
 
-      {/* STEP 3 - Partner Section */}
+      {/* STEP 3 - Partner Section (Info Page) */}
       {step === 3 && (
-        <div className="w-full bg-white text-gray-800 overflow-y-auto py-10 px-4">
-          {/* ✅ NEW “Elevate Your Practice” Section */}
+        <div className="w-full bg-white text-gray-800 overflow-y-auto py-10 px-4 h-screen">
+          
+          {/* Header */}
           <section className="text-center mb-12">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Elevate Your Practice.{" "}
@@ -227,14 +242,14 @@ export default function ClinicAuth() {
               a successful and reputable sexual health practice.
             </p>
             <button
-              onClick={handleRedirect} // ✅ redirects to /joinnow
+              onClick={handleRedirect} 
               className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:opacity-90 transition"
             >
               Join Now
             </button>
           </section>
 
-          {/* Features & Benefits */}
+          {/* Features */}
           <section className="mb-12">
             <h2 className="text-lg font-semibold text-gray-800 mb-4 text-center">
               Features & Benefits
@@ -255,7 +270,7 @@ export default function ClinicAuth() {
             </div>
           </section>
 
-          {/* Roadmap to Success */}
+          {/* Roadmap */}
           <section className="mb-12">
             <h2 className="text-lg font-semibold text-center text-gray-800 mb-4">
               Your Roadmap to Success
@@ -279,7 +294,7 @@ export default function ClinicAuth() {
             </div>
           </section>
 
-          {/* Existing “Ready to Elevate” + Clinics + Contact */}
+          {/* Chart Section */}
           <section className="text-center mb-12">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
               Ready to Elevate Your Practice?
@@ -292,27 +307,31 @@ export default function ClinicAuth() {
               <p className="text-[12px] font-semibold text-gray-700 mb-2">
                 Proven Growth Trajectory
               </p>
-              <ResponsiveContainer width="100%" height={140}>
-                <LineChart data={data}>
-                  <XAxis dataKey="name" hide />
-                  <YAxis hide />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#6C63FF"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: "#6C63FF" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              
+              <div className="h-[140px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data}>
+                    <XAxis dataKey="name" hide />
+                    <YAxis hide />
+                    <Tooltip />
+                    <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#6C63FF"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: "#6C63FF" }}
+                    />
+                    </LineChart>
+                </ResponsiveContainer>
+              </div>
+
               <p className="text-[10px] text-green-600 font-semibold mt-1">
                 +300% Year 1 Average
               </p>
             </div>
 
             <button
-              onClick={handleRedirect} // ✅ redirects to /joinnow
+              onClick={handleRedirect}
               className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-semibold py-2 px-6 rounded-lg mt-5 shadow-md hover:opacity-90 transition"
             >
               Get Started Now
@@ -331,7 +350,7 @@ export default function ClinicAuth() {
             </p>
           </section>
 
-          {/* Clinics */}
+          {/* Clinics Grid */}
           <section className="text-center mb-12">
             <h3 className="text-base font-semibold text-gray-800 mb-4">
               Our Modern & Discreet Clinics
@@ -350,8 +369,8 @@ export default function ClinicAuth() {
             </div>
           </section>
 
-          {/* Contact */}
-          <section className="text-center">
+          {/* Contact Footer */}
+          <section className="text-center pb-8">
             <h3 className="text-base font-semibold text-gray-800 mb-3">
               Contact Us
             </h3>

@@ -1,82 +1,77 @@
-import axiosInstance from "@/app/utils/axiosInstance";
-import { Constants } from "@/app/utils/constants";
+import api from "@/lib/axios";
 
-export const savePatientProfile = async (profileData) => {
+/**
+ * ✅ FIXED: Get Patient Profile
+ * Backend extracts userId from JWT token in Authorization header
+ * No need to pass userId as parameter
+ */
+export const getPatientProfile = async () => {
   try {
-    let payload;
-
-    if (profileData.profileImage instanceof File) {
-      payload = new FormData();
-      
-      if (profileData.fullName) payload.append("fullName", profileData.fullName);
-      if (profileData.email) payload.append("email", profileData.email);
-      if (profileData.age) payload.append("age", profileData.age);
-      if (profileData.gender) payload.append("gender", profileData.gender);
-      
-      payload.append("profileImage", profileData.profileImage);
-    } else {
-      payload = {
-        fullName: profileData.fullName,
-        email: profileData.email,
-        age: profileData.age,
-        gender: profileData.gender,
-      };
-    }
-
-    const response = await axiosInstance.post(
-      Constants.urlEndPoints.SAVE_PATIENT_PROFILE,
-      payload
-    );
-
-    if (response.data.success) {
-      return { 
-        success: true, 
-        data: response.data.data, 
-        message: response.data.message 
-      };
-    }
-
-    return { success: false, message: response.data.message };
-
+    // ✅ No userId in URL - backend uses JWT token
+    // URL is constructed from api baseURL + relative path
+    const response = await api.get('/patient-profile');
+    
+    return {
+      success: true,
+      data: response.data.data || response.data
+    };
   } catch (error) {
-    console.error("Error saving patient profile:", error);
+    console.error("Get profile error:", error);
+    
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        isNotFound: true,
+        message: "Profile not found"
+      };
+    }
+    
     return {
       success: false,
-      message: error.response?.data?.message || "Something went wrong while saving profile",
+      message: error.response?.data?.message || "Failed to fetch profile"
     };
   }
 };
 
-
-export const getPatientProfile = async () => {
+/**
+ * ✅ Save/Update Patient Profile
+ * Backend extracts userId from JWT token in Authorization header
+ */
+export const savePatientProfile = async (profileData) => {
   try {
-    const endpoint = Constants.urlEndPoints.GET_PATIENT_PROFILE;
+    // ✅ No userId in URL - backend uses JWT token
+    const response = await api.post('/patient-profile/save', profileData);
     
-    const response = await axiosInstance.get(endpoint);
-
-    if (response.data.success) {
-      return {
-        success: true,
-        data: response.data.data, 
-        message: response.data.message
-      };
-    }
-
-    return { success: false, message: response.data.message };
+    return {
+      success: true,
+      data: response.data.data || response.data
+    };
   } catch (error) {
-    // ✅ HANDLE 404 SPECIFICALLY
-    if (error.response?.status === 404) {
-      return {
-        success: false,
-        isNotFound: true, // Special flag we can check in UI
-        message: "Profile not found",
-      };
-    }
-
-    console.error("Error fetching patient profile:", error);
+    console.error("Save profile error:", error);
     return {
       success: false,
-      message: error.response?.data?.message || "Failed to fetch profile details",
+      message: error.response?.data?.message || "Failed to save profile"
+    };
+  }
+};
+
+/**
+ * ✅ Update Patient Profile (if you have separate update endpoint)
+ */
+export const updatePatientProfile = async (profileData) => {
+  try {
+    // ✅ No userId in URL - backend uses JWT token
+    const response = await api.put('/patient-profile', profileData);
+    
+    return {
+      success: true,
+      data: response.data.data || response.data
+    };
+  } catch (error) {
+    console.error("Update profile error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to update profile"
     };
   }
 };
