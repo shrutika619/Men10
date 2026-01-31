@@ -19,7 +19,7 @@ const HerosectionErectileDysfunctionPage = () => {
         {/* Buttons */}
         <div className="flex justify-center gap-4 mb-12">
           <a
-            href="#book-appointment"
+            href="/free-consultation"
             className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-md shadow-md hover:bg-blue-700 transition"
           >
             Book Consultation
