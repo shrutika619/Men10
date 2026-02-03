@@ -14,7 +14,7 @@ export function middleware(request) {
 
   // Protected pages (Admin, Clinic, Patient Dashboards, Assessment)
   const isProtectedPath = pathname.startsWith('/dashboard') || 
-                          pathname.startsWith('/admin') || 
+                          // pathname.startsWith('/admin') || 
                           pathname.startsWith('/clinic') ||
                           pathname.startsWith('/assessment');
 
