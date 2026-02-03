@@ -13,8 +13,7 @@ export function middleware(request) {
                      pathname.startsWith('/verify-otp');
 
   // Protected pages (Admin, Clinic, Patient Dashboards, Assessment)
-  const isProtectedPath = pathname.startsWith('/dashboard') || 
-                          // pathname.startsWith('/admin') || 
+  const isProtectedPath = // pathname.startsWith('/admin') || 
                           pathname.startsWith('/clinic') ||
                           pathname.startsWith('/assessment');
 
